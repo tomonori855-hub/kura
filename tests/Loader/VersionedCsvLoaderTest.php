@@ -1,9 +1,9 @@
 <?php
 
-namespace Katana\Tests\Loader;
+namespace Kura\Tests\Loader;
 
-use Katana\Loader\CsvVersionResolver;
-use Katana\Loader\VersionedCsvLoader;
+use Kura\Loader\CsvVersionResolver;
+use Kura\Loader\VersionedCsvLoader;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -20,7 +20,7 @@ class VersionedCsvLoaderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->basePath = sys_get_temp_dir().'/katana_test_'.uniqid();
+        $this->basePath = sys_get_temp_dir().'/kura_test_'.uniqid();
         mkdir("{$this->basePath}/data", 0777, true);
         mkdir("{$this->basePath}/definitions", 0777, true);
         mkdir("{$this->basePath}/indexes", 0777, true);
@@ -241,7 +241,7 @@ class VersionedCsvLoaderTest extends TestCase
     }
 
     // =========================================================================
-    // E2E: full flow with KatanaManager
+    // E2E: full flow with KuraManager
     // =========================================================================
 
     public function test_end_to_end_with_definitions_and_indexes(): void

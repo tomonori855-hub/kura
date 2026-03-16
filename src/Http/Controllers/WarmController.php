@@ -1,21 +1,21 @@
 <?php
 
-namespace Katana\Http\Controllers;
+namespace Kura\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Katana\KatanaManager;
+use Kura\KuraManager;
 
 class WarmController extends Controller
 {
     /**
      * Rebuild cache for specified tables (or all registered tables).
      *
-     * POST /katana/warm
-     * POST /katana/warm?tables=products,categories
+     * POST /kura/warm
+     * POST /kura/warm?tables=products,categories
      */
-    public function __invoke(Request $request, KatanaManager $manager): JsonResponse
+    public function __invoke(Request $request, KuraManager $manager): JsonResponse
     {
         /** @var string|null $version */
         $version = $request->query('version');

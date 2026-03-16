@@ -1,10 +1,10 @@
 <?php
 
-namespace Katana;
+namespace Kura;
 
-use Katana\Index\IndexBuilder;
-use Katana\Loader\LoaderInterface;
-use Katana\Store\StoreInterface;
+use Kura\Index\IndexBuilder;
+use Kura\Loader\LoaderInterface;
+use Kura\Store\StoreInterface;
 
 /**
  * Thin data layer over StoreInterface for a single table.

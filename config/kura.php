@@ -4,7 +4,7 @@ return [
     /*
      * APCu key prefix.
      */
-    'prefix' => 'katana',
+    'prefix' => 'kura',
 
     /*
      * TTL in seconds per cache type.
@@ -68,14 +68,14 @@ return [
     /*
      * Cache warm endpoint.
      *
-     * enabled: register the POST /katana/warm route
+     * enabled: register the POST /kura/warm route
      * token:   Bearer token for authentication (required)
-     * path:    URL path (default: katana/warm)
+     * path:    URL path (default: kura/warm)
      */
     'warm' => [
         'enabled' => false,
-        'token' => env('KATANA_WARM_TOKEN', ''),
-        'path' => 'katana/warm',
+        'token' => env('KURA_WARM_TOKEN', ''),
+        'path' => 'kura/warm',
     ],
 
     /*

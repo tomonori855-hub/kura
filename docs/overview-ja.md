@@ -1,8 +1,10 @@
-# Katana — 構成と使用方法
+> English version: [overview.md](overview.md)
+
+# Kura — 構成と使用方法
 
 ## 概要
 
-Katana は、参照データを APCu にキャッシュし、Laravel の `QueryBuilder` と同じ API で検索できる Laravel パッケージです。
+Kura は、参照データを APCu にキャッシュし、Laravel の `QueryBuilder` と同じ API で検索できる Laravel パッケージです。
 
 - DB にクエリを投げず、メモリ上のキャッシュから高速に取得
 - データ取得は Generator ベースで省メモリ
@@ -18,8 +20,8 @@ src/
 ├── ReferenceQueryBuilder.php          メインの fluent クエリビルダー
 ├── CacheProcessor.php                 Processor パターン — 実行を担当
 ├── CacheRepository.php                テーブル単位のキャッシュ管理・self-healing
-├── KatanaManager.php                  テーブル登録・クエリ・rebuild の中央レジストリ
-├── KatanaServiceProvider.php          Laravel サービスプロバイダ
+├── KuraManager.php                  テーブル登録・クエリ・rebuild の中央レジストリ
+├── KuraServiceProvider.php          Laravel サービスプロバイダ
 ├── Concerns/
 │   ├── BuildsWhereConditions.php      where 系メソッド群
 │   ├── BuildsOrderAndPagination.php   orderBy / paginate 系メソッド群
@@ -27,7 +29,7 @@ src/
 ├── Contracts/
 │   └── ReferenceQueryBuilderInterface.php
 ├── Console/
-│   └── RebuildCommand.php             artisan katana:rebuild
+│   └── RebuildCommand.php             artisan kura:rebuild
 ├── Index/
 │   ├── IndexDefinition.php            インデックス定義 DTO（unique / non-unique）
 │   ├── IndexBuilder.php               インデックス構築（ソート・chunk 分割・composite）
@@ -74,7 +76,7 @@ src/
 | `index` | 長い（例: 4800秒） | 失効 → full scan + 再構築 |
 | `cidx` | 長い（例: 4800秒） | 失効 → full scan + 再構築 |
 
-TTL は `config/katana.php` で設定。ids が最短（再構築トリガーの役割）。
+TTL は `config/kura.php` で設定。ids が最短（再構築トリガーの役割）。
 
 ### バージョン管理の仕組み
 
@@ -88,12 +90,12 @@ version が変わるとキャッシュキーが変わり、旧キャッシュは
 
 ### Middleware
 
-**`KatanaVersionMiddleware`**（`examples/` にサンプル）をリクエストの先頭で実行し、1リクエスト中のバージョンを固定する。
+**`KuraVersionMiddleware`**（`examples/` にサンプル）をリクエストの先頭で実行し、1リクエスト中のバージョンを固定する。
 `X-Reference-Version` ヘッダーでバージョンを明示指定可能。
 
 ```
 HTTP Request
-  └─ KatanaVersionMiddleware
+  └─ KuraVersionMiddleware
        └─ 各テーブルのアクティブバージョンを解決・コンテナにバインド
   └─ Controller
        └─ 以降のクエリはすべてバインド済みバージョンを使用
@@ -113,8 +115,8 @@ HTTP Request
 ### 初回 / キャッシュ再構築
 
 ```
-artisan katana:rebuild
-  └─ KatanaManager::rebuild($table)
+artisan kura:rebuild
+  └─ KuraManager::rebuild($table)
 
 RebuildCacheJob（非同期）
   └─ Loader::load()                     ← Generator でレコードをストリーミング
@@ -166,7 +168,7 @@ CacheRepository
        ├─ find(id) — record 取得
        └─ rebuild() — Loader を回して全キャッシュ構築
 
-KatanaManager
+KuraManager
   ├─ 役割: テーブル登録・クエリ・rebuild の中央レジストリ
   └─ 責務:
        ├─ query($table) — ReferenceQueryBuilder を返す
@@ -233,7 +235,7 @@ BinarySearch
 
 ```
 RebuildCacheJob
-  └─ KatanaManager::rebuild() に委譲
+  └─ KuraManager::rebuild() に委譲
      tries: 3（config でオーバーライド可能）
      テーブル単位で実行
 ```
@@ -249,7 +251,7 @@ ReferenceQueryBuilder
         └── IndexResolver
               └── StoreInterface
 
-KatanaManager
+KuraManager
   └── CacheRepository (per table)
 
 RecordCursor
@@ -302,7 +304,7 @@ active,bool,販売中フラグ
 ### 1. インデックス定義
 
 ```php
-use Katana\Index\IndexDefinition;
+use Kura\Index\IndexDefinition;
 
 $indexes = [
     IndexDefinition::nonUnique('country'),          // 通常インデックス
@@ -314,10 +316,10 @@ $indexes = [
 ### 2. リポジトリとクエリビルダーの構築
 
 ```php
-use Katana\CacheProcessor;
-use Katana\CacheRepository;
-use Katana\ReferenceQueryBuilder;
-use Katana\Store\ApcuStore;
+use Kura\CacheProcessor;
+use Kura\CacheRepository;
+use Kura\ReferenceQueryBuilder;
+use Kura\Store\ApcuStore;
 
 $store = new ApcuStore;
 
@@ -357,7 +359,7 @@ $product = $builder->where('code', 'ABC-001')->sole();
 $max = $builder->where('active', true)->max('price');
 $avg = $builder->avg('price');
 
-// ROW constructor IN（Katana 拡張）
+// ROW constructor IN（Kura 拡張）
 $result = $builder
     ->whereRowValuesIn(['user_id', 'item_id'], [[1, 10], [2, 20]])
     ->get();
@@ -370,7 +372,7 @@ $result = $builder
 `LoaderInterface` を実装するだけで任意のデータソースに対応できます。
 
 ```php
-use Katana\Loader\LoaderInterface;
+use Kura\Loader\LoaderInterface;
 
 class EloquentLoader implements LoaderInterface
 {

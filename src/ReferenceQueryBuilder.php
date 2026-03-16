@@ -1,11 +1,11 @@
 <?php
 
-namespace Katana;
+namespace Kura;
 
-use Katana\Concerns\BuildsOrderAndPagination;
-use Katana\Concerns\BuildsWhereConditions;
-use Katana\Concerns\ExecutesQueries;
-use Katana\Contracts\ReferenceQueryBuilderInterface;
+use Kura\Concerns\BuildsOrderAndPagination;
+use Kura\Concerns\BuildsWhereConditions;
+use Kura\Concerns\ExecutesQueries;
+use Kura\Contracts\ReferenceQueryBuilderInterface;
 
 /**
  * Fluent query builder over APCu-cached reference data.

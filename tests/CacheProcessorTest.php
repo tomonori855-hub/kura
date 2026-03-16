@@ -1,12 +1,12 @@
 <?php
 
-namespace Katana\Tests;
+namespace Kura\Tests;
 
-use Katana\CacheProcessor;
-use Katana\CacheRepository;
-use Katana\Exceptions\CacheInconsistencyException;
-use Katana\Store\ArrayStore;
-use Katana\Tests\Support\InMemoryLoader;
+use Kura\CacheProcessor;
+use Kura\CacheRepository;
+use Kura\Exceptions\CacheInconsistencyException;
+use Kura\Store\ArrayStore;
+use Kura\Tests\Support\InMemoryLoader;
 use PHPUnit\Framework\TestCase;
 
 /**

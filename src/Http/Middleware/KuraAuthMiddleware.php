@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Http\Middleware;
+namespace Kura\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -8,10 +8,10 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Authenticates warm endpoint requests via Bearer token.
  *
- * Token is configured in katana.warm.token.
+ * Token is configured in kura.warm.token.
  * If no token is configured, all requests are denied.
  */
-class KatanaAuthMiddleware
+class KuraAuthMiddleware
 {
     /**
      * @param  \Closure(Request): Response  $next
@@ -19,11 +19,11 @@ class KatanaAuthMiddleware
     public function handle(Request $request, \Closure $next): Response
     {
         /** @var string $configuredToken */
-        $configuredToken = config('katana.warm.token', '');
+        $configuredToken = config('kura.warm.token', '');
 
         if ($configuredToken === '') {
             return new \Illuminate\Http\JsonResponse(
-                ['message' => 'Warm endpoint is not configured. Set katana.warm.token.'],
+                ['message' => 'Warm endpoint is not configured. Set kura.warm.token.'],
                 403,
             );
         }

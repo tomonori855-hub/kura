@@ -1,19 +1,19 @@
 <?php
 
-namespace Katana\Tests\Http;
+namespace Kura\Tests\Http;
 
-use Katana\KatanaManager;
-use Katana\KatanaServiceProvider;
-use Katana\Store\ArrayStore;
-use Katana\Store\StoreInterface;
-use Katana\Tests\Support\InMemoryLoader;
+use Kura\KuraManager;
+use Kura\KuraServiceProvider;
+use Kura\Store\ArrayStore;
+use Kura\Store\StoreInterface;
+use Kura\Tests\Support\InMemoryLoader;
 use Orchestra\Testbench\TestCase;
 
 /**
  * Feature: Warm endpoint rebuilds APCu cache via HTTP
  *
  * Given warm endpoint is enabled with a valid token,
- * When POST /katana/warm is called,
+ * When POST /kura/warm is called,
  * Then all registered tables should be rebuilt and cached.
  */
 class WarmControllerTest extends TestCase
@@ -28,7 +28,7 @@ class WarmControllerTest extends TestCase
 
     protected function getPackageProviders($app): array
     {
-        return [KatanaServiceProvider::class];
+        return [KuraServiceProvider::class];
     }
 
     protected function defineEnvironment($app): void
@@ -36,10 +36,10 @@ class WarmControllerTest extends TestCase
         $this->store = new ArrayStore;
         $app->singleton(StoreInterface::class, fn () => $this->store);
 
-        $app['config']->set('katana.warm.enabled', true);
-        $app['config']->set('katana.warm.token', 'test-secret-token');
-        $app['config']->set('katana.version.driver', 'csv');
-        $app['config']->set('katana.version.csv_path', __DIR__.'/../Support/versions.csv');
+        $app['config']->set('kura.warm.enabled', true);
+        $app['config']->set('kura.warm.token', 'test-secret-token');
+        $app['config']->set('kura.version.driver', 'csv');
+        $app['config']->set('kura.version.csv_path', __DIR__.'/../Support/versions.csv');
     }
 
     protected function setUp(): void
@@ -47,8 +47,8 @@ class WarmControllerTest extends TestCase
         parent::setUp();
 
         assert($this->app !== null);
-        /** @var KatanaManager $manager */
-        $manager = $this->app->make(KatanaManager::class);
+        /** @var KuraManager $manager */
+        $manager = $this->app->make(KuraManager::class);
 
         $manager->register('products', new InMemoryLoader(
             records: $this->products,
@@ -63,8 +63,8 @@ class WarmControllerTest extends TestCase
     public function test_warm_rejects_request_without_token(): void
     {
         // Given: no Authorization header
-        // When: POST /katana/warm
-        $response = $this->postJson('/katana/warm');
+        // When: POST /kura/warm
+        $response = $this->postJson('/kura/warm');
 
         // Then: 401 Unauthorized
         $response->assertStatus(401);
@@ -74,8 +74,8 @@ class WarmControllerTest extends TestCase
     public function test_warm_rejects_request_with_wrong_token(): void
     {
         // Given: wrong Bearer token
-        // When: POST /katana/warm
-        $response = $this->postJson('/katana/warm', [], [
+        // When: POST /kura/warm
+        $response = $this->postJson('/kura/warm', [], [
             'Authorization' => 'Bearer wrong-token',
         ]);
 
@@ -90,8 +90,8 @@ class WarmControllerTest extends TestCase
     public function test_warm_rebuilds_all_tables(): void
     {
         // Given: products table is registered
-        // When: POST /katana/warm with valid token
-        $response = $this->postJson('/katana/warm', [], [
+        // When: POST /kura/warm with valid token
+        $response = $this->postJson('/kura/warm', [], [
             'Authorization' => 'Bearer test-secret-token',
         ]);
 
@@ -108,8 +108,8 @@ class WarmControllerTest extends TestCase
     public function test_warm_rebuilds_specific_tables(): void
     {
         // Given: products table is registered
-        // When: POST /katana/warm?tables=products
-        $response = $this->postJson('/katana/warm?tables=products', [], [
+        // When: POST /kura/warm?tables=products
+        $response = $this->postJson('/kura/warm?tables=products', [], [
             'Authorization' => 'Bearer test-secret-token',
         ]);
 
@@ -121,8 +121,8 @@ class WarmControllerTest extends TestCase
     public function test_warm_with_version_override(): void
     {
         // Given: products table is registered
-        // When: POST /katana/warm?version=v2.0.0
-        $response = $this->postJson('/katana/warm?version=v2.0.0', [], [
+        // When: POST /kura/warm?version=v2.0.0
+        $response = $this->postJson('/kura/warm?version=v2.0.0', [], [
             'Authorization' => 'Bearer test-secret-token',
         ]);
 
@@ -135,12 +135,12 @@ class WarmControllerTest extends TestCase
     {
         // Given: no tables registered (fresh manager)
         assert($this->app !== null);
-        $this->app->singleton(KatanaManager::class, fn ($app) => new KatanaManager(
+        $this->app->singleton(KuraManager::class, fn ($app) => new KuraManager(
             store: $app->make(StoreInterface::class),
         ));
 
-        // When: POST /katana/warm
-        $response = $this->postJson('/katana/warm', [], [
+        // When: POST /kura/warm
+        $response = $this->postJson('/kura/warm', [], [
             'Authorization' => 'Bearer test-secret-token',
         ]);
 
@@ -157,12 +157,12 @@ class WarmControllerTest extends TestCase
     {
         // Given: warm.path is overridden
         assert($this->app !== null);
-        $this->app['config']->set('katana.warm.path', 'custom/warm');
+        $this->app['config']->set('kura.warm.path', 'custom/warm');
 
         // Note: Route path is set at boot time, so the original path still works.
         // This test verifies the config value is respected.
         /** @var string $path */
-        $path = $this->app['config']->get('katana.warm.path');
+        $path = $this->app['config']->get('kura.warm.path');
         $this->assertSame('custom/warm', $path, 'Custom path should be configurable');
     }
 
@@ -174,15 +174,15 @@ class WarmControllerTest extends TestCase
     {
         // Given: warm.token is empty
         assert($this->app !== null);
-        $this->app['config']->set('katana.warm.token', '');
+        $this->app['config']->set('kura.warm.token', '');
 
-        // When: POST /katana/warm with any token
-        $response = $this->postJson('/katana/warm', [], [
+        // When: POST /kura/warm with any token
+        $response = $this->postJson('/kura/warm', [], [
             'Authorization' => 'Bearer some-token',
         ]);
 
         // Then: 403 with config message
         $response->assertStatus(403);
-        $response->assertJson(['message' => 'Warm endpoint is not configured. Set katana.warm.token.']);
+        $response->assertJson(['message' => 'Warm endpoint is not configured. Set kura.warm.token.']);
     }
 }

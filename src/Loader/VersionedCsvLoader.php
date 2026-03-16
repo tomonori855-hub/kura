@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Loader;
+namespace Kura\Loader;
 
 /**
  * Loads versioned records from a shared CSV data file.

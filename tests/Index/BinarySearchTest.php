@@ -1,8 +1,8 @@
 <?php
 
-namespace Katana\Tests\Index;
+namespace Kura\Tests\Index;
 
-use Katana\Index\BinarySearch;
+use Kura\Index\BinarySearch;
 use PHPUnit\Framework\TestCase;
 
 /**

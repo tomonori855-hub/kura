@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Concerns;
+namespace Kura\Concerns;
 
 use Illuminate\Database\MultipleRecordsFoundException;
 use Illuminate\Database\RecordsNotFoundException;

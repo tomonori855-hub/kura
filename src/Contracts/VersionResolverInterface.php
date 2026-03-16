@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Contracts;
+namespace Kura\Contracts;
 
 /**
  * Resolves the active reference data version.

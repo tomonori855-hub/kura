@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Tests\Support;
+namespace Kura\Tests\Support;
 
 use Illuminate\Database\Eloquent\Model;
 

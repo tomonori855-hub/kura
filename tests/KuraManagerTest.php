@@ -1,25 +1,25 @@
 <?php
 
-namespace Katana\Tests;
+namespace Kura\Tests;
 
-use Katana\CacheProcessor;
-use Katana\CacheRepository;
-use Katana\KatanaManager;
-use Katana\ReferenceQueryBuilder;
-use Katana\Store\ArrayStore;
-use Katana\Tests\Support\InMemoryLoader;
+use Kura\CacheProcessor;
+use Kura\CacheRepository;
+use Kura\KuraManager;
+use Kura\ReferenceQueryBuilder;
+use Kura\Store\ArrayStore;
+use Kura\Tests\Support\InMemoryLoader;
 use PHPUnit\Framework\TestCase;
 
-class KatanaManagerTest extends TestCase
+class KuraManagerTest extends TestCase
 {
     private ArrayStore $store;
 
-    private KatanaManager $manager;
+    private KuraManager $manager;
 
     protected function setUp(): void
     {
         $this->store = new ArrayStore;
-        $this->manager = new KatanaManager(store: $this->store);
+        $this->manager = new KuraManager(store: $this->store);
     }
 
     // -------------------------------------------------------------------------
@@ -281,7 +281,7 @@ class KatanaManagerTest extends TestCase
     public function test_rebuild_uses_per_table_ttl_override(): void
     {
         // Arrange: per-table config with custom record TTL
-        $manager = new KatanaManager(
+        $manager = new KuraManager(
             store: $this->store,
             defaultTtl: ['ids' => 100, 'record' => 200],
             tableConfigs: [
@@ -307,7 +307,7 @@ class KatanaManagerTest extends TestCase
     public function test_rebuild_uses_per_table_chunk_size_override(): void
     {
         // Arrange
-        $manager = new KatanaManager(
+        $manager = new KuraManager(
             store: $this->store,
             defaultChunkSize: null,
             tableConfigs: [
@@ -406,7 +406,7 @@ class KatanaManagerTest extends TestCase
     {
         // Arrange
         $dispatched = false;
-        $manager = new KatanaManager(
+        $manager = new KuraManager(
             store: $this->store,
             rebuildDispatcher: function () use (&$dispatched) {
                 $dispatched = true;

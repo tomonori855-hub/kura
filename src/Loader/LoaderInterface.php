@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Loader;
+namespace Kura\Loader;
 
 interface LoaderInterface
 {

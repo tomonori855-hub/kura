@@ -1,8 +1,8 @@
 <?php
 
-namespace Katana\Tests\Store;
+namespace Kura\Tests\Store;
 
-use Katana\Store\ApcuStore;
+use Kura\Store\ApcuStore;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,13 +14,13 @@ class ApcuStoreKeyTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->store = new ApcuStore(prefix: 'katana');
+        $this->store = new ApcuStore(prefix: 'kura');
     }
 
     public function test_ids_key(): void
     {
         $this->assertSame(
-            'katana:users:v1:ids',
+            'kura:users:v1:ids',
             $this->store->idsKey('users', 'v1'),
             'ids key should include prefix, table, and version',
         );
@@ -29,7 +29,7 @@ class ApcuStoreKeyTest extends TestCase
     public function test_record_key_with_integer_id(): void
     {
         $this->assertSame(
-            'katana:users:v1:record:1',
+            'kura:users:v1:record:1',
             $this->store->recordKey('users', 'v1', 1),
             'record key should include prefix, table, version, and integer id',
         );
@@ -38,7 +38,7 @@ class ApcuStoreKeyTest extends TestCase
     public function test_record_key_with_string_id(): void
     {
         $this->assertSame(
-            'katana:users:v1:record:abc',
+            'kura:users:v1:record:abc',
             $this->store->recordKey('users', 'v1', 'abc'),
             'record key should include prefix, table, version, and string id',
         );
@@ -47,7 +47,7 @@ class ApcuStoreKeyTest extends TestCase
     public function test_meta_key(): void
     {
         $this->assertSame(
-            'katana:users:v1:meta',
+            'kura:users:v1:meta',
             $this->store->metaKey('users', 'v1'),
             'meta key should include prefix, table, and version',
         );
@@ -56,7 +56,7 @@ class ApcuStoreKeyTest extends TestCase
     public function test_index_key_single_column(): void
     {
         $this->assertSame(
-            'katana:users:v1:idx:status',
+            'kura:users:v1:idx:status',
             $this->store->indexKey('users', 'v1', 'status'),
             'index key for single column should include prefix, table, version, and column',
         );
@@ -65,7 +65,7 @@ class ApcuStoreKeyTest extends TestCase
     public function test_index_key_with_chunk(): void
     {
         $this->assertSame(
-            'katana:users:v1:idx:status:0',
+            'kura:users:v1:idx:status:0',
             $this->store->indexKey('users', 'v1', 'status', 0),
             'index key with chunk should include chunk number suffix',
         );
@@ -74,7 +74,7 @@ class ApcuStoreKeyTest extends TestCase
     public function test_lock_key_has_no_version(): void
     {
         $this->assertSame(
-            'katana:users:lock',
+            'kura:users:lock',
             $this->store->lockKey('users'),
             'lock key should not include version',
         );

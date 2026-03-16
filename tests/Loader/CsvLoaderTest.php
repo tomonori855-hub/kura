@@ -1,10 +1,10 @@
 <?php
 
-namespace Katana\Tests\Loader;
+namespace Kura\Tests\Loader;
 
 use DateTimeImmutable;
-use Katana\Loader\CsvLoader;
-use Katana\Loader\CsvVersionResolver;
+use Kura\Loader\CsvLoader;
+use Kura\Loader\CsvVersionResolver;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -29,7 +29,7 @@ class CsvLoaderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->tmpDir = sys_get_temp_dir().'/katana_csvloader_test_'.uniqid();
+        $this->tmpDir = sys_get_temp_dir().'/kura_csvloader_test_'.uniqid();
         mkdir($this->tmpDir.'/products', recursive: true);
     }
 

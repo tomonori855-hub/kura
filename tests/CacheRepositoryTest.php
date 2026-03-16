@@ -1,10 +1,10 @@
 <?php
 
-namespace Katana\Tests;
+namespace Kura\Tests;
 
-use Katana\CacheRepository;
-use Katana\Store\ArrayStore;
-use Katana\Tests\Support\InMemoryLoader;
+use Kura\CacheRepository;
+use Kura\Store\ArrayStore;
+use Kura\Tests\Support\InMemoryLoader;
 use PHPUnit\Framework\TestCase;
 
 class CacheRepositoryTest extends TestCase
@@ -461,7 +461,7 @@ class CacheRepositoryTest extends TestCase
 
     public function test_rebuild_releases_lock_on_loader_exception(): void
     {
-        $failingLoader = new class implements \Katana\Loader\LoaderInterface
+        $failingLoader = new class implements \Kura\Loader\LoaderInterface
         {
             public function load(): \Generator
             {

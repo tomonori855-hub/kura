@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Concerns;
+namespace Kura\Concerns;
 
 /**
  * All WHERE-condition builder methods.
@@ -122,12 +122,12 @@ trait BuildsWhereConditions
     // =========================================================================
     // whereRowValuesIn / whereRowValuesNotIn  (+ or variants)
     // =========================================================================
-    // Katana extension — not available in Laravel's Query\Builder.
+    // Kura extension — not available in Laravel's Query\Builder.
     //
     // Equivalent to MySQL's ROW constructor syntax:
     //   SELECT * FROM t WHERE (col1, col2) IN ((v1a, v2a), (v1b, v2b))
     //
-    // When a composite index exists on the specified columns, Katana resolves
+    // When a composite index exists on the specified columns, Kura resolves
     // matching IDs via O(n) hashmap lookups (n = number of tuples) instead of
     // a full table scan.
 

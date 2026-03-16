@@ -1,12 +1,12 @@
 <?php
 
-namespace Katana\Tests;
+namespace Kura\Tests;
 
-use Katana\CacheProcessor;
-use Katana\CacheRepository;
-use Katana\ReferenceQueryBuilder;
-use Katana\Store\ArrayStore;
-use Katana\Tests\Support\InMemoryLoader;
+use Kura\CacheProcessor;
+use Kura\CacheRepository;
+use Kura\ReferenceQueryBuilder;
+use Kura\Store\ArrayStore;
+use Kura\Tests\Support\InMemoryLoader;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
  * When querying with whereRowValuesIn() (multi-column tuple match),
  * Then only records matching the specified column-value tuples should be returned.
  *
- * This is a Katana extension equivalent to MySQL's ROW constructor syntax:
+ * This is a Kura extension equivalent to MySQL's ROW constructor syntax:
  *   SELECT * FROM t WHERE (col1, col2) IN ((v1a, v2a), (v1b, v2b))
  *
  * Laravel's Query\Builder does not provide this — it requires whereRaw().

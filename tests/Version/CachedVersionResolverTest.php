@@ -1,9 +1,9 @@
 <?php
 
-namespace Katana\Tests\Version;
+namespace Kura\Tests\Version;
 
-use Katana\Contracts\VersionResolverInterface;
-use Katana\Version\CachedVersionResolver;
+use Kura\Contracts\VersionResolverInterface;
+use Kura\Version\CachedVersionResolver;
 use PHPUnit\Framework\TestCase;
 
 class CachedVersionResolverTest extends TestCase

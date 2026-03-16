@@ -1,20 +1,20 @@
 <?php
 
-namespace Katana\Tests\Console;
+namespace Kura\Tests\Console;
 
 use Illuminate\Testing\PendingCommand;
-use Katana\KatanaManager;
-use Katana\KatanaServiceProvider;
-use Katana\Store\ArrayStore;
-use Katana\Store\StoreInterface;
-use Katana\Tests\Support\InMemoryLoader;
+use Kura\KuraManager;
+use Kura\KuraServiceProvider;
+use Kura\Store\ArrayStore;
+use Kura\Store\StoreInterface;
+use Kura\Tests\Support\InMemoryLoader;
 use Orchestra\Testbench\TestCase;
 
 /**
- * Feature: katana:rebuild artisan command
+ * Feature: kura:rebuild artisan command
  *
- * Given registered tables in the KatanaManager,
- * When running the katana:rebuild command,
+ * Given registered tables in the KuraManager,
+ * When running the kura:rebuild command,
  * Then cache should be populated for the specified tables.
  */
 class RebuildCommandTest extends TestCase
@@ -23,7 +23,7 @@ class RebuildCommandTest extends TestCase
 
     protected function getPackageProviders($app): array
     {
-        return [KatanaServiceProvider::class];
+        return [KuraServiceProvider::class];
     }
 
     protected function defineEnvironment($app): void
@@ -32,11 +32,11 @@ class RebuildCommandTest extends TestCase
         $app->singleton(StoreInterface::class, fn () => $this->store);
     }
 
-    private function manager(): KatanaManager
+    private function manager(): KuraManager
     {
         assert($this->app !== null);
 
-        return $this->app->make(KatanaManager::class);
+        return $this->app->make(KuraManager::class);
     }
 
     /**
@@ -65,8 +65,8 @@ class RebuildCommandTest extends TestCase
             ['id' => 1, 'title' => 'Widget'],
         ]));
 
-        // When: running katana:rebuild with no arguments
-        $this->runArtisan('katana:rebuild')
+        // When: running kura:rebuild with no arguments
+        $this->runArtisan('kura:rebuild')
             ->expectsOutputToContain('Rebuilding: users')
             ->expectsOutputToContain('Rebuilding: products')
             ->expectsOutputToContain('All rebuilds completed.')
@@ -99,7 +99,7 @@ class RebuildCommandTest extends TestCase
         ]));
 
         // When: rebuilding only 'users'
-        $this->runArtisan('katana:rebuild', ['table' => ['users']])
+        $this->runArtisan('kura:rebuild', ['table' => ['users']])
             ->expectsOutputToContain('Rebuilding: users')
             ->assertExitCode(0);
 
@@ -128,7 +128,7 @@ class RebuildCommandTest extends TestCase
         ));
 
         // When: rebuilding with --reference-version=v2.0.0
-        $this->runArtisan('katana:rebuild', ['--reference-version' => 'v2.0.0'])
+        $this->runArtisan('kura:rebuild', ['--reference-version' => 'v2.0.0'])
             ->expectsOutputToContain('Using reference version: v2.0.0')
             ->expectsOutputToContain('version: v2.0.0')
             ->assertExitCode(0);
@@ -151,8 +151,8 @@ class RebuildCommandTest extends TestCase
     public function test_rebuild_with_no_tables_shows_warning(): void
     {
         // Given: no tables registered
-        // When: running katana:rebuild
-        $this->runArtisan('katana:rebuild')
+        // When: running kura:rebuild
+        $this->runArtisan('kura:rebuild')
             ->expectsOutputToContain('No tables registered.')
             ->assertExitCode(0);
     }
@@ -166,7 +166,7 @@ class RebuildCommandTest extends TestCase
         // Given: a loader that throws an exception
         $manager = $this->manager();
 
-        $failingLoader = new class implements \Katana\Loader\LoaderInterface
+        $failingLoader = new class implements \Kura\Loader\LoaderInterface
         {
             public function load(): \Generator
             {
@@ -195,7 +195,7 @@ class RebuildCommandTest extends TestCase
         $manager->register('failing_table', $failingLoader);
 
         // When: rebuilding the failing table
-        $this->runArtisan('katana:rebuild', ['table' => ['failing_table']])
+        $this->runArtisan('kura:rebuild', ['table' => ['failing_table']])
             ->expectsOutputToContain('Failed: DB connection failed')
             ->assertExitCode(1);
     }

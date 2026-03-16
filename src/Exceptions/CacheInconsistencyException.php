@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Exceptions;
+namespace Kura\Exceptions;
 
 class CacheInconsistencyException extends \RuntimeException
 {

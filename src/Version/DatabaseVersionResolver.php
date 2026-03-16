@@ -1,9 +1,9 @@
 <?php
 
-namespace Katana\Version;
+namespace Kura\Version;
 
 use Illuminate\Support\Facades\DB;
-use Katana\Contracts\VersionResolverInterface;
+use Kura\Contracts\VersionResolverInterface;
 
 /**
  * Resolves the active version from a database table.

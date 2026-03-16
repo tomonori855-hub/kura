@@ -1,12 +1,12 @@
 <?php
 
-namespace Katana;
+namespace Kura;
 
-use Katana\Exceptions\CacheInconsistencyException;
-use Katana\Index\IndexResolver;
-use Katana\Store\ArrayStore;
-use Katana\Store\StoreInterface;
-use Katana\Support\RecordCursor;
+use Kura\Exceptions\CacheInconsistencyException;
+use Kura\Index\IndexResolver;
+use Kura\Store\ArrayStore;
+use Kura\Store\StoreInterface;
+use Kura\Support\RecordCursor;
 
 /**
  * Orchestrates query execution over cached data.

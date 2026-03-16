@@ -1,11 +1,11 @@
 <?php
 
-namespace Katana\Tests\Version;
+namespace Kura\Tests\Version;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Katana\KatanaServiceProvider;
-use Katana\Version\DatabaseVersionResolver;
+use Kura\KuraServiceProvider;
+use Kura\Version\DatabaseVersionResolver;
 use Orchestra\Testbench\TestCase;
 
 /**
@@ -21,7 +21,7 @@ class DatabaseVersionResolverTest extends TestCase
 
     protected function getPackageProviders($app): array
     {
-        return [KatanaServiceProvider::class];
+        return [KuraServiceProvider::class];
     }
 
     protected function defineDatabaseMigrations(): void

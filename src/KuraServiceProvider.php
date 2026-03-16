@@ -1,29 +1,29 @@
 <?php
 
-namespace Katana;
+namespace Kura;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Katana\Console\RebuildCommand;
-use Katana\Contracts\VersionResolverInterface;
-use Katana\Http\Controllers\WarmController;
-use Katana\Http\Middleware\KatanaAuthMiddleware;
-use Katana\Jobs\RebuildCacheJob;
-use Katana\Loader\CsvVersionResolver;
-use Katana\Store\ApcuStore;
-use Katana\Store\StoreInterface;
-use Katana\Version\CachedVersionResolver;
-use Katana\Version\DatabaseVersionResolver;
+use Kura\Console\RebuildCommand;
+use Kura\Contracts\VersionResolverInterface;
+use Kura\Http\Controllers\WarmController;
+use Kura\Http\Middleware\KuraAuthMiddleware;
+use Kura\Jobs\RebuildCacheJob;
+use Kura\Loader\CsvVersionResolver;
+use Kura\Store\ApcuStore;
+use Kura\Store\StoreInterface;
+use Kura\Version\CachedVersionResolver;
+use Kura\Version\DatabaseVersionResolver;
 
-class KatanaServiceProvider extends ServiceProvider
+class KuraServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/katana.php', 'katana');
+        $this->mergeConfigFrom(__DIR__.'/../config/kura.php', 'kura');
 
         $this->app->singleton(StoreInterface::class, function ($app) {
             /** @var string $prefix */
-            $prefix = $app['config']->get('katana.prefix', 'katana');
+            $prefix = $app['config']->get('kura.prefix', 'kura');
 
             return new ApcuStore($prefix);
         });
@@ -33,18 +33,18 @@ class KatanaServiceProvider extends ServiceProvider
             $config = $app->make('config');
 
             /** @var string $driver */
-            $driver = $config->get('katana.version.driver', 'database');
+            $driver = $config->get('kura.version.driver', 'database');
             /** @var int $cacheTtl */
-            $cacheTtl = $config->get('katana.version.cache_ttl', 300);
+            $cacheTtl = $config->get('kura.version.cache_ttl', 300);
 
             $inner = match ($driver) {
                 'database' => new DatabaseVersionResolver(
-                    table: $config->get('katana.version.table', 'reference_versions'),
-                    versionColumn: $config->get('katana.version.columns.version', 'version'),
-                    startAtColumn: $config->get('katana.version.columns.activated_at', 'activated_at'),
+                    table: $config->get('kura.version.table', 'reference_versions'),
+                    versionColumn: $config->get('kura.version.columns.version', 'version'),
+                    startAtColumn: $config->get('kura.version.columns.activated_at', 'activated_at'),
                 ),
                 'csv' => new CsvVersionResolver(
-                    versionsFilePath: $config->get('katana.version.csv_path', ''),
+                    versionsFilePath: $config->get('kura.version.csv_path', ''),
                 ),
                 default => throw new \InvalidArgumentException("Unknown version driver: {$driver}"),
             };
@@ -56,17 +56,17 @@ class KatanaServiceProvider extends ServiceProvider
             return $inner;
         });
 
-        $this->app->singleton(KatanaManager::class, function ($app) {
+        $this->app->singleton(KuraManager::class, function ($app) {
             /** @var array{ids?: int, record?: int, meta?: int, index?: int, ids_jitter?: int} $ttl */
-            $ttl = $app['config']->get('katana.ttl', []);
+            $ttl = $app['config']->get('kura.ttl', []);
             /** @var int|null $chunkSize */
-            $chunkSize = $app['config']->get('katana.chunk_size');
+            $chunkSize = $app['config']->get('kura.chunk_size');
             /** @var int $lockTtl */
-            $lockTtl = $app['config']->get('katana.lock_ttl', 60);
+            $lockTtl = $app['config']->get('kura.lock_ttl', 60);
             /** @var array<string, array{ttl?: array{ids?: int, record?: int, meta?: int, index?: int, ids_jitter?: int}, chunk_size?: int|null}> $tableConfigs */
-            $tableConfigs = $app['config']->get('katana.tables', []);
+            $tableConfigs = $app['config']->get('kura.tables', []);
 
-            return new KatanaManager(
+            return new KuraManager(
                 store: $app->make(StoreInterface::class),
                 defaultTtl: $ttl,
                 defaultChunkSize: $chunkSize,
@@ -81,8 +81,8 @@ class KatanaServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__.'/../config/katana.php' => config_path('katana.php'),
-            ], 'katana-config');
+                __DIR__.'/../config/kura.php' => config_path('kura.php'),
+            ], 'kura-config');
 
             $this->commands([RebuildCommand::class]);
         }
@@ -95,16 +95,16 @@ class KatanaServiceProvider extends ServiceProvider
         /** @var \Illuminate\Config\Repository $config */
         $config = $this->app->make('config');
 
-        if (! $config->get('katana.warm.enabled', false)) {
+        if (! $config->get('kura.warm.enabled', false)) {
             return;
         }
 
         /** @var string $path */
-        $path = $config->get('katana.warm.path', 'katana/warm');
+        $path = $config->get('kura.warm.path', 'kura/warm');
 
         Route::post($path, WarmController::class)
-            ->middleware(KatanaAuthMiddleware::class)
-            ->name('katana.warm');
+            ->middleware(KuraAuthMiddleware::class)
+            ->name('kura.warm');
     }
 
     /**
@@ -122,18 +122,18 @@ class KatanaServiceProvider extends ServiceProvider
         $config = $this->app->make('config');
 
         /** @var string $strategy */
-        $strategy = $config->get('katana.rebuild.strategy', 'sync');
+        $strategy = $config->get('kura.rebuild.strategy', 'sync');
 
         if ($strategy !== 'queue') {
             return null;
         }
 
         /** @var string|null $connection */
-        $connection = $config->get('katana.rebuild.queue.connection');
+        $connection = $config->get('kura.rebuild.queue.connection');
         /** @var string|null $queue */
-        $queue = $config->get('katana.rebuild.queue.queue');
+        $queue = $config->get('kura.rebuild.queue.queue');
         /** @var int $retry */
-        $retry = $config->get('katana.rebuild.queue.retry', 3);
+        $retry = $config->get('kura.rebuild.queue.retry', 3);
 
         return function (CacheRepository $repository) use ($connection, $queue, $retry): void {
             $job = new RebuildCacheJob($repository->table());

@@ -1,9 +1,9 @@
 <?php
 
-namespace Katana\Tests\Loader;
+namespace Kura\Tests\Loader;
 
 use DateTimeImmutable;
-use Katana\Loader\CsvVersionResolver;
+use Kura\Loader\CsvVersionResolver;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,7 +18,7 @@ class CsvVersionResolverTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->tmpDir = sys_get_temp_dir().'/katana_version_test_'.uniqid();
+        $this->tmpDir = sys_get_temp_dir().'/kura_version_test_'.uniqid();
         mkdir($this->tmpDir);
     }
 

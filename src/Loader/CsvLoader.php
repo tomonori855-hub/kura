@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Loader;
+namespace Kura\Loader;
 
 /**
  * Loads records from a versioned CSV snapshot.

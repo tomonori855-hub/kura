@@ -1,9 +1,9 @@
 <?php
 
-namespace Katana\Tests\Index;
+namespace Kura\Tests\Index;
 
-use Katana\Index\IndexResolver;
-use Katana\Store\ArrayStore;
+use Kura\Index\IndexResolver;
+use Kura\Store\ArrayStore;
 use PHPUnit\Framework\TestCase;
 
 /**

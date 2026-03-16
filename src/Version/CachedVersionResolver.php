@@ -1,8 +1,8 @@
 <?php
 
-namespace Katana\Version;
+namespace Kura\Version;
 
-use Katana\Contracts\VersionResolverInterface;
+use Kura\Contracts\VersionResolverInterface;
 
 /**
  * Decorator that caches the resolved version in APCu.
@@ -19,7 +19,7 @@ final class CachedVersionResolver implements VersionResolverInterface
     public function __construct(
         private readonly VersionResolverInterface $inner,
         private readonly int $ttl = 300,
-        private readonly string $cacheKey = 'katana:reference_version',
+        private readonly string $cacheKey = 'kura:reference_version',
         private readonly bool $useApcu = true,
     ) {}
 

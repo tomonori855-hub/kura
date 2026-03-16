@@ -1,5 +1,5 @@
 {
-    "name": "tomonori/katana",
+    "name": "tomonori/kura",
     "description": "A QueryBuilder-compatible APCu cache layer for Laravel reference data.",
     "type": "library",
     "license": "MIT",
@@ -21,21 +21,21 @@
     },
     "autoload": {
         "psr-4": {
-            "Katana\\": "src/"
+            "Kura\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Katana\\Tests\\": "tests/"
+            "Kura\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Katana\\KatanaServiceProvider"
+                "Kura\\KuraServiceProvider"
             ],
             "aliases": {
-                "Katana": "Katana\\Facades\\Katana"
+                "Kura": "Kura\\Facades\\Kura"
             }
         }
     },

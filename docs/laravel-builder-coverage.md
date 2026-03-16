@@ -1,3 +1,5 @@
+> Japanese version: [laravel-builder-coverage-ja.md](laravel-builder-coverage-ja.md)
+
 # Laravel QueryBuilder vs ReferenceQueryBuilder — Coverage Table
 
 Legend:
@@ -62,7 +64,7 @@ Legend:
 | `whereRaw($sql, $bindings)` | ❌ | SQL-only |
 | `whereDate / whereTime / whereDay / whereMonth / whereYear` | ❌ | SQL date extraction; use `whereFilter` instead |
 | `whereRowValues(...)` | ❌ | SQL row-value comparison (see `whereRowValuesIn` below) |
-| `whereRowValuesIn(...)` *(extension)* | ✅ | `(col1, col2) IN ((v1, v2), ...)` — Katana extension |
+| `whereRowValuesIn(...)` *(extension)* | ✅ | `(col1, col2) IN ((v1, v2), ...)` — Kura extension |
 | `whereRowValuesNotIn(...)` *(extension)* | ✅ | NOT IN variant |
 | `orWhereRowValuesIn(...)` *(extension)* | ✅ | OR variant |
 | `orWhereRowValuesNotIn(...)` *(extension)* | ✅ | OR NOT IN variant |

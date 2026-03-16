@@ -1,11 +1,11 @@
 <?php
 
-namespace Katana\Tests;
+namespace Kura\Tests;
 
-use Katana\CacheRepository;
-use Katana\ReferenceQueryBuilder;
-use Katana\Store\ArrayStore;
-use Katana\Tests\Support\InMemoryLoader;
+use Kura\CacheRepository;
+use Kura\ReferenceQueryBuilder;
+use Kura\Store\ArrayStore;
+use Kura\Tests\Support\InMemoryLoader;
 use PHPUnit\Framework\TestCase;
 
 class ReferenceQueryBuilderWhereTest extends TestCase

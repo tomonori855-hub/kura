@@ -1,19 +1,19 @@
 <?php
 
-namespace Katana\Console;
+namespace Kura\Console;
 
 use Illuminate\Console\Command;
-use Katana\KatanaManager;
+use Kura\KuraManager;
 
 class RebuildCommand extends Command
 {
-    protected $signature = 'katana:rebuild
+    protected $signature = 'kura:rebuild
         {table?* : Table names to rebuild (omit for all)}
         {--reference-version= : Reference data version to use for rebuild (resolves from Loader if omitted)}';
 
-    protected $description = 'Rebuild Katana APCu cache for registered tables';
+    protected $description = 'Rebuild Kura APCu cache for registered tables';
 
-    public function handle(KatanaManager $manager): int
+    public function handle(KuraManager $manager): int
     {
         /** @var string|null $version */
         $version = $this->option('reference-version');

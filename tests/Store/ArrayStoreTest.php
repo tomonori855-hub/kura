@@ -1,8 +1,8 @@
 <?php
 
-namespace Katana\Tests\Store;
+namespace Kura\Tests\Store;
 
-use Katana\Store\ArrayStore;
+use Kura\Store\ArrayStore;
 use PHPUnit\Framework\TestCase;
 
 class ArrayStoreTest extends TestCase

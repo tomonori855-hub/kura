@@ -1,34 +1,34 @@
 <?php
 
-namespace Katana\Tests\Feature;
+namespace Kura\Tests\Feature;
 
-use Katana\Contracts\VersionResolverInterface;
-use Katana\Facades\Katana;
-use Katana\KatanaManager;
-use Katana\KatanaServiceProvider;
-use Katana\Store\ArrayStore;
-use Katana\Store\StoreInterface;
-use Katana\Tests\Support\InMemoryLoader;
-use Katana\Version\CachedVersionResolver;
+use Kura\Contracts\VersionResolverInterface;
+use Kura\Facades\Kura;
+use Kura\KuraManager;
+use Kura\KuraServiceProvider;
+use Kura\Store\ArrayStore;
+use Kura\Store\StoreInterface;
+use Kura\Tests\Support\InMemoryLoader;
+use Kura\Version\CachedVersionResolver;
 use Orchestra\Testbench\TestCase;
 
 /**
  * Feature: Full Laravel integration via ServiceProvider, Manager, and Facade.
  *
- * Given a Laravel application with Katana installed,
+ * Given a Laravel application with Kura installed,
  * When tables are registered and queried,
  * Then the fluent API should work end-to-end just like DB::table().
  */
-class KatanaIntegrationTest extends TestCase
+class KuraIntegrationTest extends TestCase
 {
     protected function getPackageProviders($app): array
     {
-        return [KatanaServiceProvider::class];
+        return [KuraServiceProvider::class];
     }
 
     protected function getPackageAliases($app): array
     {
-        return ['Katana' => \Katana\Facades\Katana::class];
+        return ['Kura' => \Kura\Facades\Kura::class];
     }
 
     protected function defineEnvironment($app): void
@@ -36,8 +36,8 @@ class KatanaIntegrationTest extends TestCase
         // Use ArrayStore instead of ApcuStore for testing
         $app->singleton(StoreInterface::class, fn () => new ArrayStore);
 
-        $app['config']->set('katana.prefix', 'test');
-        $app['config']->set('katana.ttl', [
+        $app['config']->set('kura.prefix', 'test');
+        $app['config']->set('kura.ttl', [
             'ids' => 3600,
             'meta' => 4800,
             'record' => 4800,
@@ -45,11 +45,11 @@ class KatanaIntegrationTest extends TestCase
         ]);
     }
 
-    private function manager(): KatanaManager
+    private function manager(): KuraManager
     {
         assert($this->app !== null);
 
-        return $this->app->make(KatanaManager::class);
+        return $this->app->make(KuraManager::class);
     }
 
     private function registerSampleData(): void
@@ -74,22 +74,22 @@ class KatanaIntegrationTest extends TestCase
     public function test_service_provider_registers_manager(): void
     {
         // Given the ServiceProvider is loaded
-        // When resolving KatanaManager from the container
+        // When resolving KuraManager from the container
         $manager = $this->manager();
 
-        // Then it should be a KatanaManager instance
-        $this->assertInstanceOf(KatanaManager::class, $manager);
+        // Then it should be a KuraManager instance
+        $this->assertInstanceOf(KuraManager::class, $manager);
     }
 
     public function test_service_provider_registers_singleton(): void
     {
         // Given the ServiceProvider is loaded
-        // When resolving KatanaManager twice
+        // When resolving KuraManager twice
         $m1 = $this->manager();
         $m2 = $this->manager();
 
         // Then it should be the same instance
-        $this->assertSame($m1, $m2, 'KatanaManager should be a singleton');
+        $this->assertSame($m1, $m2, 'KuraManager should be a singleton');
     }
 
     public function test_service_provider_registers_version_resolver(): void
@@ -124,9 +124,9 @@ class KatanaIntegrationTest extends TestCase
     public function test_config_is_loaded(): void
     {
         // Given the ServiceProvider is loaded
-        // Then katana config should be available
-        $this->assertSame('test', config('katana.prefix'));
-        $this->assertSame(3600, config('katana.ttl.ids'));
+        // Then kura config should be available
+        $this->assertSame('test', config('kura.prefix'));
+        $this->assertSame(3600, config('kura.ttl.ids'));
     }
 
     // =========================================================================
@@ -135,7 +135,7 @@ class KatanaIntegrationTest extends TestCase
 
     public function test_facade_resolves_to_manager(): void
     {
-        $this->assertInstanceOf(KatanaManager::class, Katana::getFacadeRoot());
+        $this->assertInstanceOf(KuraManager::class, Kura::getFacadeRoot());
     }
 
     // =========================================================================
@@ -148,7 +148,7 @@ class KatanaIntegrationTest extends TestCase
         $this->registerSampleData();
 
         // When: where('country', 'JP')->get()
-        $results = Katana::table('users')->where('country', 'JP')->get();
+        $results = Kura::table('users')->where('country', 'JP')->get();
 
         // Then: Alice and Charlie
         $this->assertCount(2, $results);
@@ -162,7 +162,7 @@ class KatanaIntegrationTest extends TestCase
         $this->registerSampleData();
 
         // When: where('age', '>=', 30)->get()
-        $results = Katana::table('users')->where('age', '>=', 30)->get();
+        $results = Kura::table('users')->where('age', '>=', 30)->get();
 
         // Then: Bob(35) and Diana(30)
         $this->assertCount(2, $results);
@@ -176,7 +176,7 @@ class KatanaIntegrationTest extends TestCase
         $this->registerSampleData();
 
         // When: find(3)
-        $record = Katana::table('users')->find(3);
+        $record = Kura::table('users')->find(3);
 
         // Then: Charlie
         $this->assertNotNull($record);
@@ -187,7 +187,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $record = Katana::table('users')->find(999);
+        $record = Kura::table('users')->find(999);
 
         $this->assertNull($record);
     }
@@ -196,7 +196,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $record = Katana::table('users')
+        $record = Kura::table('users')
             ->where('country', 'US')
             ->orderBy('name')
             ->first();
@@ -210,7 +210,7 @@ class KatanaIntegrationTest extends TestCase
         $this->registerSampleData();
 
         // When: orderBy('score', 'desc')->limit(3)->get()
-        $results = Katana::table('users')
+        $results = Kura::table('users')
             ->orderBy('score', 'desc')
             ->limit(3)
             ->get();
@@ -226,7 +226,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $results = Katana::table('users')
+        $results = Kura::table('users')
             ->whereIn('country', ['JP', 'DE'])
             ->get();
 
@@ -240,7 +240,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $results = Katana::table('users')
+        $results = Kura::table('users')
             ->whereBetween('age', [25, 30])
             ->get();
 
@@ -259,7 +259,7 @@ class KatanaIntegrationTest extends TestCase
         ]));
         $manager->rebuild('items');
 
-        $results = Katana::table('items')->whereNull('deleted_at')->get();
+        $results = Kura::table('items')->whereNull('deleted_at')->get();
 
         $this->assertCount(2, $results);
         $names = array_column($results, 'name');
@@ -275,8 +275,8 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $this->assertSame(5, Katana::table('users')->count());
-        $this->assertSame(2, Katana::table('users')->where('country', 'JP')->count());
+        $this->assertSame(5, Kura::table('users')->count());
+        $this->assertSame(2, Kura::table('users')->where('country', 'JP')->count());
     }
 
     public function test_sum(): void
@@ -284,15 +284,15 @@ class KatanaIntegrationTest extends TestCase
         $this->registerSampleData();
 
         // 85 + 72 + 91 + 88 + 65 = 401
-        $this->assertSame(401, Katana::table('users')->sum('score'));
+        $this->assertSame(401, Kura::table('users')->sum('score'));
     }
 
     public function test_min_max(): void
     {
         $this->registerSampleData();
 
-        $this->assertSame(65, Katana::table('users')->min('score'));
-        $this->assertSame(91, Katana::table('users')->max('score'));
+        $this->assertSame(65, Kura::table('users')->min('score'));
+        $this->assertSame(91, Kura::table('users')->max('score'));
     }
 
     public function test_avg(): void
@@ -300,7 +300,7 @@ class KatanaIntegrationTest extends TestCase
         $this->registerSampleData();
 
         // 401 / 5 = 80.2
-        $this->assertSame(80.2, Katana::table('users')->avg('score'));
+        $this->assertSame(80.2, Kura::table('users')->avg('score'));
     }
 
     // =========================================================================
@@ -311,7 +311,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $names = Katana::table('users')
+        $names = Kura::table('users')
             ->where('country', 'JP')
             ->orderBy('name')
             ->pluck('name');
@@ -323,7 +323,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $nameById = Katana::table('users')
+        $nameById = Kura::table('users')
             ->where('country', 'JP')
             ->pluck('name', 'id');
 
@@ -334,7 +334,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $name = Katana::table('users')
+        $name = Kura::table('users')
             ->where('id', 1)
             ->value('name');
 
@@ -349,9 +349,9 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $this->assertTrue(Katana::table('users')->where('country', 'JP')->exists());
-        $this->assertFalse(Katana::table('users')->where('country', 'BR')->exists());
-        $this->assertTrue(Katana::table('users')->where('country', 'BR')->doesntExist());
+        $this->assertTrue(Kura::table('users')->where('country', 'JP')->exists());
+        $this->assertFalse(Kura::table('users')->where('country', 'BR')->exists());
+        $this->assertTrue(Kura::table('users')->where('country', 'BR')->doesntExist());
     }
 
     // =========================================================================
@@ -362,7 +362,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $base = Katana::table('users')->where('country', 'JP');
+        $base = Kura::table('users')->where('country', 'JP');
         $withAge = $base->clone()->where('age', '>=', 25);
 
         // base should still return 2, withAge should return 1 (only Alice, 28)
@@ -384,7 +384,7 @@ class KatanaIntegrationTest extends TestCase
         ]));
 
         // No rebuild() called — CacheProcessor should fall back to Loader
-        $results = Katana::table('users')->get();
+        $results = Kura::table('users')->get();
 
         $this->assertCount(2, $results, 'Self-Healing should load data on cache miss');
     }
@@ -400,7 +400,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $results = Katana::table('users')
+        $results = Kura::table('users')
             ->where('country', 'JP')
             ->orWhere('country', 'DE')
             ->get();
@@ -419,7 +419,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $results = Katana::table('users')
+        $results = Kura::table('users')
             ->where(function ($q) {
                 $q->where('country', 'JP')
                     ->orWhere('country', 'DE');
@@ -441,7 +441,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $results = Katana::table('users')
+        $results = Kura::table('users')
             ->where('country', 'US')
             ->where(function ($q) {
                 $q->where('age', '<', 30)
@@ -462,7 +462,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $results = Katana::table('users')
+        $results = Kura::table('users')
             ->where(function ($q) {
                 $q->where('country', 'JP')
                     ->where('age', '>=', 25);
@@ -488,7 +488,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $results = Katana::table('users')
+        $results = Kura::table('users')
             ->whereNot(function ($q) {
                 $q->where('country', 'JP');
             })
@@ -510,7 +510,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $results = Katana::table('users')
+        $results = Kura::table('users')
             ->where(function ($q) {
                 $q->where(function ($q2) {
                     $q2->where('country', 'JP')
@@ -539,7 +539,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $results = Katana::table('users')
+        $results = Kura::table('users')
             ->whereAny(['name', 'country'], 'Alice')
             ->get();
 
@@ -555,7 +555,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $results = Katana::table('users')
+        $results = Kura::table('users')
             ->whereNone(['country'], 'JP')
             ->get();
 
@@ -571,7 +571,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $results = Katana::table('users')
+        $results = Kura::table('users')
             ->where('country', 'DE')
             ->orWhereIn('country', ['JP'])
             ->get();
@@ -590,7 +590,7 @@ class KatanaIntegrationTest extends TestCase
     {
         $this->registerSampleData();
 
-        $results = Katana::table('users')
+        $results = Kura::table('users')
             ->whereFilter(fn ($r) => strlen($r['name']) <= 3)
             ->get();
 
@@ -618,7 +618,7 @@ class KatanaIntegrationTest extends TestCase
         ]));
         $manager->rebuildAll();
 
-        $this->assertSame(1, Katana::table('users')->count());
-        $this->assertSame(2, Katana::table('products')->count());
+        $this->assertSame(1, Kura::table('users')->count());
+        $this->assertSame(2, Kura::table('products')->count());
     }
 }

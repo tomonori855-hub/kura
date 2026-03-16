@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Index;
+namespace Kura\Index;
 
 /**
  * Binary search operations on sorted index entries.

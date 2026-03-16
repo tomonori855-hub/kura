@@ -1,14 +1,14 @@
 <?php
 
-namespace Katana\Tests\Loader;
+namespace Kura\Tests\Loader;
 
 use Illuminate\Database\Schema\Blueprint;
-use Katana\KatanaServiceProvider;
-use Katana\Loader\EloquentLoader;
-use Katana\Loader\QueryBuilderLoader;
-use Katana\Store\ArrayStore;
-use Katana\Store\StoreInterface;
-use Katana\Tests\Support\ProductModel;
+use Kura\KuraServiceProvider;
+use Kura\Loader\EloquentLoader;
+use Kura\Loader\QueryBuilderLoader;
+use Kura\Store\ArrayStore;
+use Kura\Store\StoreInterface;
+use Kura\Tests\Support\ProductModel;
 use Orchestra\Testbench\TestCase;
 
 /**
@@ -22,7 +22,7 @@ class DatabaseLoaderTest extends TestCase
 {
     protected function getPackageProviders($app): array
     {
-        return [KatanaServiceProvider::class];
+        return [KuraServiceProvider::class];
     }
 
     protected function defineEnvironment($app): void

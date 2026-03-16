@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Store;
+namespace Kura\Store;
 
 /**
  * In-memory store for testing. No APCu required.

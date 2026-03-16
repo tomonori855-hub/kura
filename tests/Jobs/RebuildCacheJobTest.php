@@ -1,11 +1,11 @@
 <?php
 
-namespace Katana\Tests\Jobs;
+namespace Kura\Tests\Jobs;
 
-use Katana\Jobs\RebuildCacheJob;
-use Katana\KatanaManager;
-use Katana\Store\ArrayStore;
-use Katana\Tests\Support\InMemoryLoader;
+use Kura\Jobs\RebuildCacheJob;
+use Kura\KuraManager;
+use Kura\Store\ArrayStore;
+use Kura\Tests\Support\InMemoryLoader;
 use PHPUnit\Framework\TestCase;
 
 class RebuildCacheJobTest extends TestCase
@@ -33,14 +33,14 @@ class RebuildCacheJobTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // handle() delegates to KatanaManager::rebuild()
+    // handle() delegates to KuraManager::rebuild()
     // -------------------------------------------------------------------------
 
     public function test_handle_calls_manager_rebuild(): void
     {
         // Arrange
         $store = new ArrayStore;
-        $manager = new KatanaManager(store: $store);
+        $manager = new KuraManager(store: $store);
         $manager->register('products', new InMemoryLoader([
             ['id' => 1, 'name' => 'Widget'],
             ['id' => 2, 'name' => 'Gadget'],
@@ -65,7 +65,7 @@ class RebuildCacheJobTest extends TestCase
     {
         // Arrange
         $store = new ArrayStore;
-        $manager = new KatanaManager(store: $store);
+        $manager = new KuraManager(store: $store);
         $manager->register('products', new InMemoryLoader([
             ['id' => 1, 'name' => 'Widget'],
         ]));

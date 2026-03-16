@@ -1,8 +1,8 @@
 <?php
 
-namespace Katana\Index;
+namespace Kura\Index;
 
-use Katana\Store\StoreInterface;
+use Kura\Store\StoreInterface;
 
 /**
  * Resolves candidate IDs from stored indexes using where conditions.

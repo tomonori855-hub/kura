@@ -1,8 +1,8 @@
 <?php
 
-namespace Katana\Support;
+namespace Kura\Support;
 
-use Katana\CacheRepository;
+use Kura\CacheRepository;
 
 /**
  * Generator-based cursor that fetches and filters records from CacheRepository.

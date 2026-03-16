@@ -1,39 +1,41 @@
+> English version: [README.md](README.md)
+
 # Kura
 
-A Laravel package that provides a **QueryBuilder-compatible interface over APCu cache** for reference data.
+参照データを APCu にキャッシュし、Laravel の **QueryBuilder 互換 API** で検索できる Laravel パッケージです。
 
-Load data once from DB or CSV, cache it in APCu, and query it with Laravel's familiar fluent API — no database queries at runtime.
+DB や CSV からデータを一度読み込んで APCu にキャッシュし、Laravel の fluent API でクエリ — 実行時の DB クエリは不要です。
 
-## Features
+## 特徴
 
-- **Laravel QueryBuilder API** — `where`, `orderBy`, `paginate`, `find`, `count`, `sum`, etc.
-- **APCu-backed** — Sub-millisecond reads from shared memory
-- **Generator-based** — Low memory usage for large datasets
-- **Index acceleration** — Binary search indexes and composite index hashmaps for O(1) lookups
-- **Self-Healing** — Automatic cache rebuild on eviction
-- **Version management** — Seamless version switching via DB or CSV
+- **Laravel QueryBuilder API** — `where`, `orderBy`, `paginate`, `find`, `count`, `sum` など
+- **APCu ベース** — 共有メモリからサブミリ秒で読み取り
+- **Generator ベース** — 大規模データセットでも低メモリ使用量
+- **インデックス高速化** — バイナリサーチインデックスと composite index hashmap による O(1) ルックアップ
+- **Self-Healing** — キャッシュが消えても自動再構築
+- **バージョン管理** — DB または CSV によるシームレスなバージョン切り替え
 
-## Requirements
+## 要件
 
 - PHP ^8.4
 - Laravel ^12.0
-- APCu extension
+- APCu 拡張
 
-## Installation
+## インストール
 
 ```bash
 composer require tomonori/kura
 ```
 
-Publish the config:
+設定ファイルの公開:
 
 ```bash
 php artisan vendor:publish --tag=kura-config
 ```
 
-## Quick Start
+## クイックスタート
 
-### 1. Prepare CSV files
+### 1. CSV ファイルを用意する
 
 ```
 data/
@@ -52,10 +54,10 @@ id,version,activated_at
 **products/defines.csv**
 ```csv
 column,type,description
-id,int,Product ID
-name,string,Product name
-country,string,Country code
-price,int,Price
+id,int,商品ID
+name,string,商品名
+country,string,国コード
+price,int,価格
 ```
 
 **products/v1.0.0.csv**
@@ -66,10 +68,10 @@ id,name,country,price
 3,Widget C,JP,100
 ```
 
-### 2. Register the table
+### 2. テーブルを登録する
 
 ```php
-// In a ServiceProvider
+// ServiceProvider 内
 use Kura\Facades\Kura;
 use Kura\Loader\CsvLoader;
 use Kura\Loader\CsvVersionResolver;
@@ -86,35 +88,35 @@ $loader = new CsvLoader(
 Kura::register('products', $loader, primaryKey: 'id');
 ```
 
-### 3. Build the cache
+### 3. キャッシュを構築する
 
 ```bash
 php artisan kura:rebuild
-php artisan kura:rebuild products                    # specific table
-php artisan kura:rebuild --reference-version=v2.0.0  # explicit version
+php artisan kura:rebuild products                    # 特定テーブルのみ
+php artisan kura:rebuild --reference-version=v2.0.0  # バージョン指定
 ```
 
-### 4. Query
+### 4. クエリ
 
 ```php
 use Kura\Facades\Kura;
 
-// Basic queries
+// 基本クエリ
 $products = Kura::table('products')->where('country', 'JP')->get();
 $product  = Kura::table('products')->find(1);
 $count    = Kura::table('products')->where('country', 'JP')->count();
 
-// Sorting & pagination
+// ソート・ページネーション
 $page = Kura::table('products')
     ->orderBy('price', 'desc')
     ->paginate(20);
 
-// Aggregates
+// 集計
 $max = Kura::table('products')->max('price');
 $avg = Kura::table('products')->where('country', 'JP')->avg('price');
 ```
 
-### Using Eloquent instead
+### Eloquent を使う場合
 
 ```php
 use Kura\Loader\EloquentLoader;
@@ -129,7 +131,7 @@ $loader = new EloquentLoader(
 Kura::register('products', $loader);
 ```
 
-## Supported Query Methods
+## 対応クエリメソッド
 
 ### WHERE
 
@@ -143,19 +145,19 @@ Kura::register('products', $loader);
 
 `limit`, `offset`, `take`, `skip`, `forPage`, `forPageBeforeId`, `forPageAfterId`
 
-### Retrieval
+### 取得
 
 `get`, `first`, `sole`, `soleValue`, `find`, `findOr`, `value`, `cursor`, `pluck`, `implode`
 
-### Aggregates
+### 集計
 
 `count`, `min`, `max`, `sum`, `avg`, `average`, `exists`, `doesntExist`, `existsOr`, `doesntExistOr`
 
-### Pagination
+### ページネーション
 
 `paginate`, `simplePaginate`
 
-## Configuration
+## 設定
 
 ```php
 // config/kura.php
@@ -163,18 +165,18 @@ return [
     'prefix' => 'kura',
 
     'ttl' => [
-        'ids'        => 3600,   // 1 hour (shortest — rebuild trigger)
+        'ids'        => 3600,   // 1時間（最短 — 再構築トリガー）
         'meta'       => 4800,
         'record'     => 4800,
         'index'      => 4800,
-        'ids_jitter' => 600,    // random 0–600s to prevent thundering herd
+        'ids_jitter' => 600,    // Thundering Herd 防止用ランダム 0〜600秒
     ],
 
-    'chunk_size' => null,       // null = no chunking
+    'chunk_size' => null,       // null = chunk なし
     'lock_ttl'   => 60,
 
     'rebuild' => [
-        'strategy' => 'sync',   // 'sync', 'queue', or 'callback'
+        'strategy' => 'sync',   // 'sync', 'queue', 'callback'
         'queue' => [
             'connection' => null,
             'queue'      => null,
@@ -183,14 +185,14 @@ return [
     ],
 
     'version' => [
-        'driver'    => 'database',  // 'database' or 'csv'
+        'driver'    => 'database',  // 'database' または 'csv'
         'table'     => 'reference_versions',
         'columns'   => ['version' => 'version', 'activated_at' => 'activated_at'],
         'csv_path'  => '',
         'cache_ttl' => 300,
     ],
 
-    // Per-table overrides
+    // テーブル単位のオーバーライド
     'tables' => [
         // 'products' => [
         //     'ttl' => ['record' => 7200],
@@ -200,13 +202,12 @@ return [
 ];
 ```
 
-## Documentation
+## ドキュメント
 
-- [Cache Architecture](docs/cache-architecture.md) / [日本語](docs/cache-architecture-ja.md) — Design details (TTL, indexes, self-healing, queue)
-- [Overview](docs/overview.md) / [日本語](docs/overview-ja.md) — Structure and usage
-- [Laravel Builder Coverage](docs/laravel-builder-coverage.md) / [日本語](docs/laravel-builder-coverage-ja.md) — API compatibility table
-- [日本語 README](README-ja.md)
+- [キャッシュアーキテクチャ](docs/cache-architecture-ja.md) / [English](docs/cache-architecture.md) — 設計詳細（TTL・インデックス・self-healing・Queue）
+- [概要](docs/overview-ja.md) / [English](docs/overview.md) — 構成と使用方法
+- [Laravel Builder カバレッジ](docs/laravel-builder-coverage-ja.md) / [English](docs/laravel-builder-coverage.md) — API 対応表
 
-## License
+## ライセンス
 
 MIT

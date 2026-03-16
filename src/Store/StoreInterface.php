@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Store;
+namespace Kura\Store;
 
 interface StoreInterface
 {

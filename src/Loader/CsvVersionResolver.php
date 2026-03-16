@@ -1,11 +1,11 @@
 <?php
 
-namespace Katana\Loader;
+namespace Kura\Loader;
 
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
-use Katana\Contracts\VersionResolverInterface;
+use Kura\Contracts\VersionResolverInterface;
 
 /**
  * Resolves the active version string from a versions.csv file.

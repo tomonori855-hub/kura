@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Contracts;
+namespace Kura\Contracts;
 
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
@@ -130,7 +130,7 @@ interface ReferenceQueryBuilderInterface
 
     public function whereFilter(\Closure $callback): static;
 
-    // Katana extension — ROW constructor IN
+    // Kura extension — ROW constructor IN
     // Equivalent to: WHERE (col1, col2) IN ((v1a, v2a), (v1b, v2b))
 
     /**

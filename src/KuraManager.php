@@ -1,18 +1,18 @@
 <?php
 
-namespace Katana;
+namespace Kura;
 
-use Katana\Loader\LoaderInterface;
-use Katana\Store\StoreInterface;
+use Kura\Loader\LoaderInterface;
+use Kura\Store\StoreInterface;
 
 /**
- * Central registry for Katana cache tables.
+ * Central registry for Kura cache tables.
  *
  * Usage:
  *   $manager->register('products', loader: $loader, primaryKey: 'id');
  *   $manager->table('products')->where('country', 'JP')->get();
  */
-class KatanaManager
+class KuraManager
 {
     /** @var array<string, array{loader: LoaderInterface, primaryKey: string}> */
     private array $tables = [];
@@ -73,7 +73,7 @@ class KatanaManager
             $config = $this->tables[$table] ?? null;
 
             if ($config === null) {
-                throw new \InvalidArgumentException("Table '{$table}' is not registered with Katana.");
+                throw new \InvalidArgumentException("Table '{$table}' is not registered with Kura.");
             }
 
             $this->repositories[$table] = new CacheRepository(

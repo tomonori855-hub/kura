@@ -1,8 +1,8 @@
 <?php
 
-namespace Katana\Tests\Support;
+namespace Kura\Tests\Support;
 
-use Katana\Loader\LoaderInterface;
+use Kura\Loader\LoaderInterface;
 
 /**
  * Simple in-memory LoaderInterface implementation for tests.

@@ -1,8 +1,8 @@
 <?php
 
-namespace Katana\Tests\Index;
+namespace Kura\Tests\Index;
 
-use Katana\Index\IndexBuilder;
+use Kura\Index\IndexBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**

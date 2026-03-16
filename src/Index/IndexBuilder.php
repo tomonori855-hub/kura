@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Index;
+namespace Kura\Index;
 
 /**
  * Builds index entries from records.

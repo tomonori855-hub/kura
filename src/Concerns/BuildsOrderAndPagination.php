@@ -1,6 +1,6 @@
 <?php
 
-namespace Katana\Concerns;
+namespace Kura\Concerns;
 
 /**
  * ORDER BY, LIMIT/OFFSET, and pagination builder methods.

@@ -1,8 +1,8 @@
 <?php
 
-namespace Katana\Tests\Index;
+namespace Kura\Tests\Index;
 
-use Katana\Index\IndexDefinition;
+use Kura\Index\IndexDefinition;
 use PHPUnit\Framework\TestCase;
 
 class IndexDefinitionTest extends TestCase
