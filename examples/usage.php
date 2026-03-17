@@ -27,9 +27,9 @@
 use Illuminate\Support\Facades\DB;
 use Kura\Contracts\VersionResolverInterface;
 use Kura\KuraManager;
-use Kura\Loader\EloquentLoader;
 use Kura\Loader\CsvLoader;
 use Kura\Loader\CsvVersionResolver;
+use Kura\Loader\EloquentLoader;
 
 class AppServiceProvider
 {

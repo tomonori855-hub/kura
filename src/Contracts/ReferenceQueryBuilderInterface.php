@@ -191,9 +191,9 @@ interface ReferenceQueryBuilderInterface
 
     public function forPage(int $page, int $perPage = 15): static;
 
-    public function forPageBeforeId(int $perPage = 15, int $lastId = 0, string $column = 'id'): static;
+    public function forPageBeforeId(int $perPage = 15, int|string|null $lastId = null, string $column = 'id'): static;
 
-    public function forPageAfterId(int $perPage = 15, int $lastId = 0, string $column = 'id'): static;
+    public function forPageAfterId(int $perPage = 15, int|string|null $lastId = null, string $column = 'id'): static;
 
     public function getLimit(): ?int;
 

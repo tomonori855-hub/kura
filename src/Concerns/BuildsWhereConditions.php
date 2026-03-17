@@ -181,30 +181,22 @@ trait BuildsWhereConditions
 
     public function whereNull(string $column): static
     {
-        $this->wheres[] = ['type' => 'null', 'boolean' => 'and', 'column' => $column, 'not' => false];
-
-        return $this;
+        return $this->addWhereNull('and', false, $column);
     }
 
     public function whereNotNull(string $column): static
     {
-        $this->wheres[] = ['type' => 'null', 'boolean' => 'and', 'column' => $column, 'not' => true];
-
-        return $this;
+        return $this->addWhereNull('and', true, $column);
     }
 
     public function orWhereNull(string $column): static
     {
-        $this->wheres[] = ['type' => 'null', 'boolean' => 'or', 'column' => $column, 'not' => false];
-
-        return $this;
+        return $this->addWhereNull('or', false, $column);
     }
 
     public function orWhereNotNull(string $column): static
     {
-        $this->wheres[] = ['type' => 'null', 'boolean' => 'or', 'column' => $column, 'not' => true];
-
-        return $this;
+        return $this->addWhereNull('or', true, $column);
     }
 
     // =========================================================================
@@ -218,15 +210,7 @@ trait BuildsWhereConditions
      */
     public function whereBetween(string $column, iterable $values, bool $not = false): static
     {
-        $this->wheres[] = [
-            'type' => 'between',
-            'boolean' => 'and',
-            'column' => $column,
-            'values' => $this->twoValues($values),
-            'not' => $not,
-        ];
-
-        return $this;
+        return $this->addWhereBetween('and', $not, $column, $values);
     }
 
     /**
@@ -236,7 +220,7 @@ trait BuildsWhereConditions
      */
     public function whereNotBetween(string $column, iterable $values): static
     {
-        return $this->whereBetween($column, $values, true);
+        return $this->addWhereBetween('and', true, $column, $values);
     }
 
     /**
@@ -246,15 +230,7 @@ trait BuildsWhereConditions
      */
     public function orWhereBetween(string $column, iterable $values): static
     {
-        $this->wheres[] = [
-            'type' => 'between',
-            'boolean' => 'or',
-            'column' => $column,
-            'values' => $this->twoValues($values),
-            'not' => false,
-        ];
-
-        return $this;
+        return $this->addWhereBetween('or', false, $column, $values);
     }
 
     /**
@@ -264,15 +240,7 @@ trait BuildsWhereConditions
      */
     public function orWhereNotBetween(string $column, iterable $values): static
     {
-        $this->wheres[] = [
-            'type' => 'between',
-            'boolean' => 'or',
-            'column' => $column,
-            'values' => $this->twoValues($values),
-            'not' => true,
-        ];
-
-        return $this;
+        return $this->addWhereBetween('or', true, $column, $values);
     }
 
     // =========================================================================
@@ -289,15 +257,7 @@ trait BuildsWhereConditions
      */
     public function whereBetweenColumns(string $column, array $values, bool $not = false): static
     {
-        $this->wheres[] = [
-            'type' => 'betweenColumns',
-            'boolean' => 'and',
-            'column' => $column,
-            'values' => [$values[0], $values[1]],
-            'not' => $not,
-        ];
-
-        return $this;
+        return $this->addWhereBetweenColumns('and', $not, $column, $values);
     }
 
     /**
@@ -307,7 +267,7 @@ trait BuildsWhereConditions
      */
     public function whereNotBetweenColumns(string $column, array $values): static
     {
-        return $this->whereBetweenColumns($column, $values, true);
+        return $this->addWhereBetweenColumns('and', true, $column, $values);
     }
 
     /**
@@ -317,15 +277,7 @@ trait BuildsWhereConditions
      */
     public function orWhereBetweenColumns(string $column, array $values): static
     {
-        $this->wheres[] = [
-            'type' => 'betweenColumns',
-            'boolean' => 'or',
-            'column' => $column,
-            'values' => [$values[0], $values[1]],
-            'not' => false,
-        ];
-
-        return $this;
+        return $this->addWhereBetweenColumns('or', false, $column, $values);
     }
 
     /**
@@ -335,15 +287,7 @@ trait BuildsWhereConditions
      */
     public function orWhereNotBetweenColumns(string $column, array $values): static
     {
-        $this->wheres[] = [
-            'type' => 'betweenColumns',
-            'boolean' => 'or',
-            'column' => $column,
-            'values' => [$values[0], $values[1]],
-            'not' => true,
-        ];
-
-        return $this;
+        return $this->addWhereBetweenColumns('or', true, $column, $values);
     }
 
     // =========================================================================
@@ -355,21 +299,13 @@ trait BuildsWhereConditions
      *
      * The scalar is tested against two record columns (the "range" is in the record).
      * e.g. ->whereValueBetween(50, ['min_age', 'max_age'])
-     *       → keep records where min_age <= 50 <= max_age
+     *       -> keep records where min_age <= 50 <= max_age
      *
      * @param  array{string, string}  $columns  [min_column, max_column]
      */
     public function whereValueBetween(mixed $value, array $columns, bool $not = false): static
     {
-        $this->wheres[] = [
-            'type' => 'valueBetween',
-            'boolean' => 'and',
-            'value' => $value,
-            'columns' => [$columns[0], $columns[1]],
-            'not' => $not,
-        ];
-
-        return $this;
+        return $this->addWhereValueBetween('and', $not, $value, $columns);
     }
 
     /**
@@ -379,7 +315,7 @@ trait BuildsWhereConditions
      */
     public function whereValueNotBetween(mixed $value, array $columns): static
     {
-        return $this->whereValueBetween($value, $columns, true);
+        return $this->addWhereValueBetween('and', true, $value, $columns);
     }
 
     /**
@@ -389,15 +325,7 @@ trait BuildsWhereConditions
      */
     public function orWhereValueBetween(mixed $value, array $columns): static
     {
-        $this->wheres[] = [
-            'type' => 'valueBetween',
-            'boolean' => 'or',
-            'value' => $value,
-            'columns' => [$columns[0], $columns[1]],
-            'not' => false,
-        ];
-
-        return $this;
+        return $this->addWhereValueBetween('or', false, $value, $columns);
     }
 
     /**
@@ -407,15 +335,7 @@ trait BuildsWhereConditions
      */
     public function orWhereValueNotBetween(mixed $value, array $columns): static
     {
-        $this->wheres[] = [
-            'type' => 'valueBetween',
-            'boolean' => 'or',
-            'value' => $value,
-            'columns' => [$columns[0], $columns[1]],
-            'not' => true,
-        ];
-
-        return $this;
+        return $this->addWhereValueBetween('or', true, $value, $columns);
     }
 
     // =========================================================================
@@ -455,40 +375,16 @@ trait BuildsWhereConditions
      * AND WHERE first_column OP second_column.
      *
      *   ->whereColumn('updated_at', '>', 'created_at')
-     *   ->whereColumn('first_name', 'last_name')   ← shorthand for =
+     *   ->whereColumn('first_name', 'last_name')   <- shorthand for =
      */
     public function whereColumn(string $first, string $operator = '=', ?string $second = null): static
     {
-        if ($second === null) {
-            [$second, $operator] = [$operator, '='];
-        }
-
-        $this->wheres[] = [
-            'type' => 'column',
-            'boolean' => 'and',
-            'first' => $first,
-            'operator' => $operator,
-            'second' => $second,
-        ];
-
-        return $this;
+        return $this->addWhereColumn('and', $first, $operator, $second);
     }
 
     public function orWhereColumn(string $first, string $operator = '=', ?string $second = null): static
     {
-        if ($second === null) {
-            [$second, $operator] = [$operator, '='];
-        }
-
-        $this->wheres[] = [
-            'type' => 'column',
-            'boolean' => 'or',
-            'first' => $first,
-            'operator' => $operator,
-            'second' => $second,
-        ];
-
-        return $this;
+        return $this->addWhereColumn('or', $first, $operator, $second);
     }
 
     // =========================================================================
@@ -613,26 +509,12 @@ trait BuildsWhereConditions
      */
     public function whereNullSafeEquals(string $column, mixed $value): static
     {
-        $this->wheres[] = [
-            'type' => 'nullsafe',
-            'boolean' => 'and',
-            'column' => $column,
-            'value' => $value,
-        ];
-
-        return $this;
+        return $this->addWhereNullSafe('and', $column, $value);
     }
 
     public function orWhereNullSafeEquals(string $column, mixed $value): static
     {
-        $this->wheres[] = [
-            'type' => 'nullsafe',
-            'boolean' => 'or',
-            'column' => $column,
-            'value' => $value,
-        ];
-
-        return $this;
+        return $this->addWhereNullSafe('or', $column, $value);
     }
 
     // =========================================================================
@@ -757,6 +639,84 @@ trait BuildsWhereConditions
             'columns' => $columns,
             'tuples' => $tuples,
             'not' => $not,
+        ];
+
+        return $this;
+    }
+
+    private function addWhereNull(string $boolean, bool $not, string $column): static
+    {
+        $this->wheres[] = ['type' => 'null', 'boolean' => $boolean, 'column' => $column, 'not' => $not];
+
+        return $this;
+    }
+
+    /** @param iterable<mixed> $values */
+    private function addWhereBetween(string $boolean, bool $not, string $column, iterable $values): static
+    {
+        $this->wheres[] = [
+            'type' => 'between',
+            'boolean' => $boolean,
+            'column' => $column,
+            'values' => $this->twoValues($values),
+            'not' => $not,
+        ];
+
+        return $this;
+    }
+
+    /** @param array{string, string} $values */
+    private function addWhereBetweenColumns(string $boolean, bool $not, string $column, array $values): static
+    {
+        $this->wheres[] = [
+            'type' => 'betweenColumns',
+            'boolean' => $boolean,
+            'column' => $column,
+            'values' => [$values[0], $values[1]],
+            'not' => $not,
+        ];
+
+        return $this;
+    }
+
+    /** @param array{string, string} $columns */
+    private function addWhereValueBetween(string $boolean, bool $not, mixed $value, array $columns): static
+    {
+        $this->wheres[] = [
+            'type' => 'valueBetween',
+            'boolean' => $boolean,
+            'value' => $value,
+            'columns' => [$columns[0], $columns[1]],
+            'not' => $not,
+        ];
+
+        return $this;
+    }
+
+    private function addWhereColumn(string $boolean, string $first, string $operator, ?string $second): static
+    {
+        if ($second === null) {
+            [$second, $operator] = [$operator, '='];
+        }
+
+        $this->wheres[] = [
+            'type' => 'column',
+            'boolean' => $boolean,
+            'first' => $first,
+            'operator' => $operator,
+            'second' => $second,
+        ];
+
+        return $this;
+    }
+
+    private function addWhereNullSafe(string $boolean, string $column, mixed $value): static
+    {
+        $this->wheres[] = [
+            'type' => 'nullsafe',
+            'boolean' => $boolean,
+            'column' => $column,
+            'value' => $value,
         ];
 
         return $this;

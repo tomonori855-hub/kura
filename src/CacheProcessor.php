@@ -7,6 +7,7 @@ use Kura\Index\IndexResolver;
 use Kura\Store\ArrayStore;
 use Kura\Store\StoreInterface;
 use Kura\Support\RecordCursor;
+use Kura\Support\WhereEvaluator;
 
 /**
  * Orchestrates query execution over cached data.
@@ -158,15 +159,6 @@ class CacheProcessor
 
         // No sorting: stream records with early exit on limit.
         // Record inconsistency is checked inline — no pre-fetch needed.
-        $cursor = new RecordCursor(
-            ids: [],
-            repository: $this->repository,
-            wheres: $wheres,
-            orders: [],
-            limit: null,
-            offset: null,
-        );
-
         $skipped = 0;
         $yielded = 0;
 
@@ -189,7 +181,7 @@ class CacheProcessor
                 continue;
             }
 
-            if (! $cursor->matchesWheres($record, $wheres)) {
+            if (! WhereEvaluator::evaluate($record, $wheres)) {
                 continue;
             }
 

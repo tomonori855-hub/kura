@@ -49,7 +49,8 @@ src/
 │   ├── CsvVersionResolver.php         Resolves from CSV versions.csv
 │   └── CachedVersionResolver.php      Decorator (cached via APCu + PHP var)
 └── Support/
-    └── RecordCursor.php               Generator-based cursor & where evaluator
+    ├── RecordCursor.php               Generator-based cursor (streaming, sorted, random)
+    └── WhereEvaluator.php             Stateless where-condition evaluator (static methods)
 ```
 
 ---
@@ -176,8 +177,12 @@ KuraManager
        └─ setVersionOverride() — Allows external version specification (e.g., from artisan)
 
 RecordCursor (Support)
-  ├─ Role: Generator-based cursor. Evaluates where conditions & sorting
-  └─ Responsibilities: Receives the where tree and evaluates each record, yielding matches
+  ├─ Role: Generator-based cursor. Handles streaming, sorted, and random traversal
+  └─ Responsibilities: Iterates over IDs, delegates predicate evaluation to WhereEvaluator
+
+WhereEvaluator (Support)
+  ├─ Role: Stateless where-condition evaluator
+  └─ Responsibilities: evaluate(record, wheres) — pure static evaluation of the where tree
 ```
 
 ### Store Layer (APCu Abstraction)
@@ -255,7 +260,7 @@ KuraManager
   └── CacheRepository (per table)
 
 RecordCursor
-  └── (standalone — receives data via constructor)
+  └── WhereEvaluator (standalone — stateless, no dependencies)
 ```
 
 ---

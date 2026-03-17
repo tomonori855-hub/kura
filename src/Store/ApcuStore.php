@@ -37,6 +37,11 @@ class ApcuStore implements StoreInterface
         return $key;
     }
 
+    public function compositeIndexKey(string $table, string $version, string $name): string
+    {
+        return "{$this->prefix}:{$table}:{$version}:cidx:{$name}";
+    }
+
     public function lockKey(string $table): string
     {
         return "{$this->prefix}:{$table}:lock";
@@ -111,11 +116,6 @@ class ApcuStore implements StoreInterface
     // -------------------------------------------------------------------------
     // StoreInterface — Composite Index
     // -------------------------------------------------------------------------
-
-    public function compositeIndexKey(string $table, string $version, string $name): string
-    {
-        return "{$this->prefix}:{$table}:{$version}:cidx:{$name}";
-    }
 
     /** @return array<string, list<int|string>>|false */
     public function getCompositeIndex(string $table, string $version, string $name): array|false

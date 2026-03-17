@@ -127,11 +127,11 @@ trait BuildsOrderAndPagination
      * Removes any existing order on $column and re-adds it as DESC so the
      * page is contiguous.
      */
-    public function forPageBeforeId(int $perPage = 15, int $lastId = 0, string $column = 'id'): static
+    public function forPageBeforeId(int $perPage = 15, int|string|null $lastId = null, string $column = 'id'): static
     {
         $this->orders = $this->removeExistingOrdersFor($column);
 
-        if ($lastId > 0) {
+        if ($lastId !== null) {
             $this->where($column, '<', $lastId);
         }
 
@@ -141,11 +141,11 @@ trait BuildsOrderAndPagination
     /**
      * Cursor-style pagination — fetch records AFTER $lastId (ascending order).
      */
-    public function forPageAfterId(int $perPage = 15, int $lastId = 0, string $column = 'id'): static
+    public function forPageAfterId(int $perPage = 15, int|string|null $lastId = null, string $column = 'id'): static
     {
         $this->orders = $this->removeExistingOrdersFor($column);
 
-        if ($lastId > 0) {
+        if ($lastId !== null) {
             $this->where($column, '>', $lastId);
         }
 

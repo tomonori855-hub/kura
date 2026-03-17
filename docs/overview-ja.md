@@ -49,7 +49,8 @@ src/
 │   ├── CsvVersionResolver.php         CSV versions.csv から解決
 │   └── CachedVersionResolver.php      デコレータ（APCu + PHP var でキャッシュ）
 └── Support/
-    └── RecordCursor.php               Generator ベースのカーソル・where 評価器
+    ├── RecordCursor.php               Generator ベースのカーソル（streaming / sorted / random）
+    └── WhereEvaluator.php             ステートレスな where 条件評価器（static メソッド）
 ```
 
 ---
@@ -176,8 +177,12 @@ KuraManager
        └─ setVersionOverride() — artisan 等で外部からバージョン指定
 
 RecordCursor（Support）
-  ├─ 役割: Generator ベースのカーソル。where 条件評価 + ソート
-  └─ 責務: where ツリーを受け取り、1件ずつ評価して yield する
+  ├─ 役割: Generator ベースのカーソル。streaming / sorted / random 走査
+  └─ 責務: ID を順に取得し、述語評価を WhereEvaluator に委譲して yield する
+
+WhereEvaluator（Support）
+  ├─ 役割: ステートレスな where 条件評価器
+  └─ 責務: evaluate(record, wheres) — where ツリーを純粋評価（static のみ）
 ```
 
 ### Store 層（APCu 抽象化）
@@ -255,7 +260,7 @@ KuraManager
   └── CacheRepository (per table)
 
 RecordCursor
-  └── (standalone — constructor でデータ受け取り)
+  └── WhereEvaluator (standalone — ステートレス、依存なし)
 ```
 
 ---

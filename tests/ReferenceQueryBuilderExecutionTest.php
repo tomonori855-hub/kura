@@ -497,13 +497,13 @@ class ReferenceQueryBuilderExecutionTest extends TestCase
         $this->assertSame([3, 4], $ids);
     }
 
-    public function test_for_page_before_id_with_zero_last_id_applies_no_constraint(): void
+    public function test_for_page_before_id_with_null_last_id_applies_no_constraint(): void
     {
         // Arrange — no constraint, desc order, limit 3 → ids 5,4,3
         $builder = $this->builder();
 
         // Act
-        $ids = array_column($builder->forPageBeforeId(3, 0)->get(), 'id');
+        $ids = array_column($builder->forPageBeforeId(3)->get(), 'id');
 
         // Assert
         $this->assertSame([5, 4, 3], $ids);
