@@ -715,28 +715,109 @@ and existing caches get their TTL reset via `apcu_store`. Full reload is not nee
 
 ### Rebuild Strategy
 
-```php
-// config/kura.php
-'rebuild' => [
-    // 'sync'     — synchronous rebuild (no queue needed. single loop for response + cache construction)
-    // 'queue'    — synchronous Loader response + async construction via queue
-    // 'callback' — custom callback (configured via ServiceProvider)
-    'strategy' => 'sync',
+The rebuild dispatcher is a `Closure(CacheRepository): void` injected into `CacheProcessor`.
+When `null`, rebuild runs synchronously. The strategy is configured in `config/kura.php` and wired by `KuraServiceProvider`.
 
-    // Settings for strategy = 'queue'
+---
+
+#### strategy: sync (default)
+
+```php
+'rebuild' => ['strategy' => 'sync'],
+```
+
+```
+get() / first() — cache miss detected
+  │
+  ├─ Respond from Loader (Generator → records returned to caller)
+  └─ rebuild() called in the same process, same request
+       └─ Phase 1: load all records → write record + ids to APCu  (locked)
+       └─ Phase 2: build index + meta → write to APCu             (unlocked)
+       └─ Next request hits APCu normally
+
+Latency:  first miss = Loader read time + full cache write time
+Queue:    not needed
+Use case: development, small datasets, no-queue environments
+```
+
+---
+
+#### strategy: queue ⭐ recommended for production
+
+```php
+'rebuild' => [
+    'strategy' => 'queue',
     'queue' => [
-        'connection' => null,
-        'queue'      => null,
+        'connection' => null,   // null = default connection
+        'queue'      => null,   // null = default queue
         'retry'      => 3,
     ],
 ],
 ```
 
-| strategy | Queue needed | Initial latency | Use case |
+```
+get() / first() — cache miss detected
+  │
+  ├─ dispatch(RebuildCacheJob)  ← async, returns immediately
+  └─ Respond from Loader        ← current request is served immediately
+
+  [Background worker]
+    RebuildCacheJob::handle()
+      └─ KuraManager::rebuild($table)
+           └─ Phase 1: load → APCu (locked)
+           └─ Phase 2: index + meta → APCu (unlocked)
+
+  Next request → APCu hit (normal fast path)
+
+Latency:  first miss = Loader read time only (no cache write overhead)
+Queue:    Laravel Queue required (Redis, SQS, database, etc.)
+Use case: production — cache miss is transparent to the caller
+```
+
+---
+
+#### strategy: callback (custom dispatcher)
+
+Any custom dispatch logic — Horizon, custom job, Octane task, etc.
+Register a `Closure(CacheRepository): void` by overriding `KuraServiceProvider`:
+
+```php
+// app/Providers/AppServiceProvider.php
+use Kura\CacheRepository;
+use Kura\KuraManager;
+
+public function register(): void
+{
+    $this->app->extend(KuraManager::class, function (KuraManager $manager) {
+        $manager->setRebuildDispatcher(function (CacheRepository $repo): void {
+            // e.g. dispatch to a specific Horizon queue
+            MyCustomRebuildJob::dispatch($repo->table())->onQueue('kura-rebuild');
+        });
+        return $manager;
+    });
+}
+```
+
+```
+get() / first() — cache miss detected
+  │
+  ├─ ($yourClosure)($repository)  ← your logic runs here
+  └─ Respond from Loader
+
+Latency:  depends on closure implementation
+Queue:    your choice
+Use case: Horizon priority queues, Octane, custom telemetry, etc.
+```
+
+---
+
+#### Comparison
+
+| strategy | Queue needed | Miss latency | When to use |
 |---|---|---|---|
-| **sync** | No | Slow (Loader + cache construction) | Small scale, development, no-queue environments |
-| **queue** | Yes | Loader fallback only | Recommended for production |
-| **callback** | Optional | Custom | Special requirements |
+| **sync** | No | Loader + rebuild time | Dev / small scale / no queue |
+| **queue** | Yes (Laravel Queue) | Loader only | Production (recommended) |
+| **callback** | Your choice | Your choice | Custom infrastructure |
 
 ---
 

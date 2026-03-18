@@ -716,28 +716,111 @@ public function select(Builder $builder): array
 
 ### Rebuild Strategy
 
-```php
-// config/kura.php
-'rebuild' => [
-    // 'sync'     — 同期でリビルド（Queue 不要。1ループで結果返却+キャッシュ構築）
-    // 'queue'    — 同期で Loader 返却 + Queue で非同期構築
-    // 'callback' — カスタムコールバック（ServiceProvider で設定）
-    'strategy' => 'sync',
+rebuild dispatcher は `Closure(CacheRepository): void` として `CacheProcessor` に注入される。
+`null` の場合は同期実行。`config/kura.php` で設定し、`KuraServiceProvider` が配線する。
 
-    // strategy = 'queue' 時の設定
+---
+
+#### strategy: sync（デフォルト）
+
+```php
+'rebuild' => ['strategy' => 'sync'],
+```
+
+```
+get() / first() — キャッシュミス検知
+  │
+  ├─ Loader から返却（Generator → レコードを呼び出し元に返す）
+  └─ 同じプロセス・同じリクエスト内で rebuild() を実行
+       └─ Phase 1: 全件ロード → record + ids を APCu に書き込み（ロック中）
+       └─ Phase 2: index + meta を構築 → APCu に書き込み（ロック解除後）
+       └─ 次のリクエストから APCu から通常返却
+
+レイテンシ: 初回ミス = Loader 読み込み時間 + キャッシュ書き込み時間
+Queue:      不要
+利用シーン: 開発、小規模データ、Queue なし環境
+```
+
+---
+
+#### strategy: queue ⭐ 本番推奨
+
+```php
+'rebuild' => [
+    'strategy' => 'queue',
     'queue' => [
-        'connection' => null,
-        'queue'      => null,
+        'connection' => null,   // null = デフォルト接続
+        'queue'      => null,   // null = デフォルトキュー
         'retry'      => 3,
     ],
 ],
 ```
 
-| strategy | Queue 必要 | 初回レイテンシ | 利用シーン |
+```
+get() / first() — キャッシュミス検知
+  │
+  ├─ dispatch(RebuildCacheJob)  ← 非同期、即時返却
+  └─ Loader から返却            ← 現在のリクエストはすぐに応答
+
+  [バックグラウンドワーカー]
+    RebuildCacheJob::handle()
+      └─ KuraManager::rebuild($table)
+           └─ Phase 1: ロード → APCu（ロック中）
+           └─ Phase 2: index + meta → APCu（ロック解除後）
+
+  次のリクエスト → APCu ヒット（通常の高速パス）
+
+レイテンシ: 初回ミス = Loader 読み込み時間のみ（キャッシュ書き込みのオーバーヘッドなし）
+Queue:      Laravel Queue 必須（Redis / SQS / database 等）
+利用シーン: 本番環境 — キャッシュミスが呼び出し元に透過的
+```
+
+---
+
+#### strategy: callback（カスタム dispatcher）
+
+Horizon / カスタムジョブ / Octane タスクなど、任意のディスパッチロジックを使える。
+`Closure(CacheRepository): void` を `KuraServiceProvider` をオーバーライドして登録する:
+
+```php
+// app/Providers/AppServiceProvider.php
+use Kura\CacheRepository;
+use Kura\KuraManager;
+
+public function register(): void
+{
+    $this->app->extend(KuraManager::class, function (KuraManager $manager) {
+        $manager->setRebuildDispatcher(function (CacheRepository $repo): void {
+            // 例: Horizon の特定キューに dispatch
+            MyCustomRebuildJob::dispatch($repo->table())->onQueue('kura-rebuild');
+        });
+        return $manager;
+    });
+}
+```
+
+```
+get() / first() — キャッシュミス検知
+  │
+  ├─ ($yourClosure)($repository)  ← 独自ロジックをここで実行
+  └─ Loader から返却
+
+レイテンシ: クロージャの実装次第
+Queue:      任意
+利用シーン: Horizon 優先キュー / Octane / カスタムテレメトリ等
+```
+
+---
+
+#### 比較
+
+| strategy | Queue 必要 | ミス時レイテンシ | 利用シーン |
 |---|---|---|---|
-| **sync** | 不要 | 遅い（Loader + キャッシュ構築） | 小規模、開発、Queue なし環境 |
-| **queue** | 必要 | Loader 直撃のみ | 本番推奨 |
-| **callback** | 任意 | カスタム | 特殊要件 |
+| **sync** | 不要 | Loader + 再構築時間 | 開発 / 小規模 / Queue なし |
+| **queue** | 必要（Laravel Queue） | Loader のみ | 本番（推奨） |
+| **callback** | 任意 | 実装次第 | カスタムインフラ |
+
+---
 
 ---
 
