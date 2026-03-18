@@ -30,7 +30,22 @@ src/
 │   ├── ReferenceQueryBuilderInterface.php
 │   └── VersionResolverInterface.php   Common interface for version resolution
 ├── Console/
-│   └── RebuildCommand.php             artisan kura:rebuild
+│   ├── RebuildCommand.php             artisan kura:rebuild
+│   └── TokenCommand.php               artisan kura:token (generate Bearer token)
+├── Exceptions/
+│   ├── CacheInconsistencyException.php
+│   ├── RecordsNotFoundException.php
+│   └── MultipleRecordsFoundException.php
+├── Http/
+│   ├── Controllers/
+│   │   ├── WarmController.php         POST /kura/warm (invokable)
+│   │   └── WarmStatusController.php   GET /kura/warm/status/{batchId} (invokable)
+│   ├── Batch/
+│   │   ├── BatchFinderInterface.php   Abstraction for batch lookup (testable)
+│   │   ├── BatchSummary.php           Read-only DTO for batch progress
+│   │   └── LaravelBatchFinder.php     Production impl wrapping Bus::findBatch()
+│   └── Middleware/
+│       └── KuraAuthMiddleware.php     Bearer token auth for warm routes
 ├── Index/
 │   ├── IndexDefinition.php            Index definition DTO (unique / non-unique)
 │   ├── IndexBuilder.php               Index construction (sorting, chunk splitting, composite)
@@ -246,6 +261,30 @@ RebuildCacheJob
   └─ Delegates to KuraManager::rebuild()
      tries: 3 (overridable via config)
      Executes per table
+     Optional $version parameter for version override
+```
+
+### HTTP Layer
+
+```
+WarmController (POST /kura/warm)
+  └─ Rebuilds cache for all registered tables (or specified subset)
+     strategy=sync  → sequential rebuild, returns 200
+     strategy=queue → Bus::batch() dispatch, returns 202 with batch_id
+     Customizable: publish with vendor:publish --tag=kura-controllers
+
+WarmStatusController (GET /kura/warm/status/{batchId})
+  └─ Returns progress of a queued warm batch
+     Depends on BatchFinderInterface (not Bus facade directly — testable)
+
+BatchFinderInterface / BatchSummary / LaravelBatchFinder
+  └─ Abstraction over Bus::findBatch()
+     BatchSummary: id, totalJobs, pendingJobs, failedJobs, finished, cancelled
+     Swap LaravelBatchFinder with a fake in tests (no Mockery needed)
+
+KuraAuthMiddleware
+  └─ Validates Authorization: Bearer {KURA_WARM_TOKEN}
+     Applied to both warm routes automatically
 ```
 
 ### Class Dependency Diagram

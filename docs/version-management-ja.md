@@ -131,10 +131,16 @@ interface VersionResolverInterface
 任意のリゾルバーをラップして DB/CSV への繰り返しアクセスを回避します:
 
 ```php
+use Illuminate\Database\ConnectionInterface;
 use Kura\Version\CachedVersionResolver;
 use Kura\Version\DatabaseVersionResolver;
 
-$inner = new DatabaseVersionResolver(/* ... */);
+// DatabaseVersionResolver は DB ファサードではなく ConnectionInterface を受け取る
+// KuraServiceProvider が $app['db']->connection() で自動バインドする
+$inner = new DatabaseVersionResolver(
+    connection: $app['db']->connection(),
+    table: 'reference_versions',
+);
 $resolver = new CachedVersionResolver($inner, cacheTtl: 300);
 
 // 初回: DB から読み取り、APCu + PHP var にキャッシュ

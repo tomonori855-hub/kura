@@ -30,7 +30,22 @@ src/
 │   ├── ReferenceQueryBuilderInterface.php
 │   └── VersionResolverInterface.php   バージョン解決の共通インターフェース
 ├── Console/
-│   └── RebuildCommand.php             artisan kura:rebuild
+│   ├── RebuildCommand.php             artisan kura:rebuild
+│   └── TokenCommand.php               artisan kura:token（Bearer トークン生成）
+├── Exceptions/
+│   ├── CacheInconsistencyException.php
+│   ├── RecordsNotFoundException.php
+│   └── MultipleRecordsFoundException.php
+├── Http/
+│   ├── Controllers/
+│   │   ├── WarmController.php         POST /kura/warm（invokable）
+│   │   └── WarmStatusController.php   GET /kura/warm/status/{batchId}（invokable）
+│   ├── Batch/
+│   │   ├── BatchFinderInterface.php   バッチ検索の抽象（テスタブル）
+│   │   ├── BatchSummary.php           バッチ進捗の読み取り専用 DTO
+│   │   └── LaravelBatchFinder.php     Bus::findBatch() をラップした本番実装
+│   └── Middleware/
+│       └── KuraAuthMiddleware.php     warm ルートの Bearer トークン認証
 ├── Index/
 │   ├── IndexDefinition.php            インデックス定義 DTO（unique / non-unique）
 │   ├── IndexBuilder.php               インデックス構築（ソート・chunk 分割・composite）
@@ -246,6 +261,30 @@ RebuildCacheJob
   └─ KuraManager::rebuild() に委譲
      tries: 3（config でオーバーライド可能）
      テーブル単位で実行
+     オプションの $version パラメーターでバージョン指定可能
+```
+
+### HTTP 層
+
+```
+WarmController（POST /kura/warm）
+  └─ 全登録テーブル（または指定テーブル）のキャッシュを再構築
+     strategy=sync  → 直列 rebuild、200 を返す
+     strategy=queue → Bus::batch() dispatch、batch_id つき 202 を返す
+     カスタマイズ可: vendor:publish --tag=kura-controllers でコピー
+
+WarmStatusController（GET /kura/warm/status/{batchId}）
+  └─ キューイングされた warm バッチの進捗を返す
+     Bus facade を直接使わず BatchFinderInterface に依存（テスタブル）
+
+BatchFinderInterface / BatchSummary / LaravelBatchFinder
+  └─ Bus::findBatch() の抽象化
+     BatchSummary: id, totalJobs, pendingJobs, failedJobs, finished, cancelled
+     テスト時は LaravelBatchFinder を自作 fake に差し替え可（Mockery 不要）
+
+KuraAuthMiddleware
+  └─ Authorization: Bearer {KURA_WARM_TOKEN} を検証
+     両 warm ルートに自動適用
 ```
 
 ### クラス依存関係図

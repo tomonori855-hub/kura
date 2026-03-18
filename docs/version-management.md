@@ -131,10 +131,16 @@ interface VersionResolverInterface
 Wraps any resolver to avoid repeated DB/CSV reads:
 
 ```php
+use Illuminate\Database\ConnectionInterface;
 use Kura\Version\CachedVersionResolver;
 use Kura\Version\DatabaseVersionResolver;
 
-$inner = new DatabaseVersionResolver(/* ... */);
+// DatabaseVersionResolver takes a ConnectionInterface (not DB facade)
+// KuraServiceProvider binds this automatically via $app['db']->connection()
+$inner = new DatabaseVersionResolver(
+    connection: $app['db']->connection(),
+    table: 'reference_versions',
+);
 $resolver = new CachedVersionResolver($inner, cacheTtl: 300);
 
 // First call: reads from DB, caches in APCu + PHP var

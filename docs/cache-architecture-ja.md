@@ -831,9 +831,34 @@ Queue:      任意
 
 ```php
 'warm' => [
-    'enabled' => true,
-    'token'   => env('KURA_WARM_TOKEN', ''),  // Bearer トークン（必須）
-    'path'    => 'kura/warm',                  // URL パス
+    'enabled'           => true,
+    'token'             => env('KURA_WARM_TOKEN', ''),  // Bearer トークン（必須）
+    'path'              => 'kura/warm',                  // URL パス
+    'controller'        => \Kura\Http\Controllers\WarmController::class,
+    'status_controller' => \Kura\Http\Controllers\WarmStatusController::class,
+],
+```
+
+トークンの生成:
+
+```bash
+php artisan kura:token          # 生成して .env に書き込む
+php artisan kura:token --show   # 現在のトークンを表示
+php artisan kura:token --force  # 確認なしで上書き
+```
+
+**コントローラーのカスタマイズ** — スタブを `app/Http/Controllers/Kura/` にコピー:
+
+```bash
+php artisan vendor:publish --tag=kura-controllers
+```
+
+カスタムクラスを config に指定:
+
+```php
+'warm' => [
+    'controller'        => \App\Http\Controllers\Kura\WarmController::class,
+    'status_controller' => \App\Http\Controllers\Kura\WarmStatusController::class,
 ],
 ```
 
@@ -899,15 +924,27 @@ POST /kura/warm
 ### batch_id について
 
 `batch_id` は `Bus::batch()->dispatch()` 時に Laravel が自動生成する UUID。
-`job_batches` テーブルに保存されており、進捗確認が可能:
+`job_batches` テーブルに保存されており、ステータスエンドポイントで進捗を確認できる:
 
-```php
-$batch = Bus::findBatch($batchId);
-$batch->totalJobs;    // 全ジョブ数
-$batch->pendingJobs;  // 残り
-$batch->failedJobs;   // 失敗数
-$batch->finished();   // bool
 ```
+GET /kura/warm/status/{batchId}
+Authorization: Bearer {KURA_WARM_TOKEN}
+
+レスポンス 200:
+{
+  "batch_id": "550e8400-e29b-41d4-a716-446655440000",
+  "total":     3,
+  "pending":   1,
+  "failed":    0,
+  "finished":  false,
+  "cancelled": false
+}
+
+レスポンス 404: {"message": "Batch not found."}
+```
+
+`WarmStatusController` は `Bus::findBatch()` を直接使わず `BatchFinderInterface` に依存しているため、
+テスト時に Mockery なしで自作 fake に差し替えられる。
 
 **必要なマイグレーション**（`strategy: queue` を使う場合のみ）:
 
@@ -960,15 +997,33 @@ return [
     'prefix' => 'kura',
 
     'ttl' => [
-        'ids'    => 3600,
-        'meta'   => 4800,
-        'record' => 4800,
-        'index'  => 4800,
+        'ids'        => 3600,   // 最短 — 失効が再構築トリガー
+        'meta'       => 4800,
+        'record'     => 4800,
+        'index'      => 4800,
+        'ids_jitter' => 600,    // ids TTL に加算するランダム値（0〜600秒）スパイク防止
     ],
 
     'chunk_size' => null,  // null = chunk しない。10000 等で全テーブル共通 chunk
 
     'lock_ttl' => 60,  // rebuild ロックの TTL（秒）。Loader 実行時間の 1.5〜2倍を目安に設定
+
+    'rebuild' => [
+        'strategy' => 'sync',   // 'sync' | 'queue' | 'callback'
+        'queue' => [
+            'connection' => null,  // null = デフォルト接続
+            'queue'      => null,  // null = デフォルトキュー
+            'retry'      => 3,
+        ],
+    ],
+
+    'warm' => [
+        'enabled'           => false,
+        'token'             => env('KURA_WARM_TOKEN', ''),
+        'path'              => 'kura/warm',
+        'controller'        => \Kura\Http\Controllers\WarmController::class,
+        'status_controller' => \Kura\Http\Controllers\WarmStatusController::class,
+    ],
 
     'tables' => [
         // テーブル単位でオーバーライドしたい場合のみ
