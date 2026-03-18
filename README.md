@@ -14,6 +14,7 @@ Load data once from CSV or DB, store it in APCu, and query it with the same flue
 - **Smart indexes** — Binary search indexes for range queries, composite index hashmaps for O(1) multi-column lookups, automatic chunk splitting for large datasets
 - **Self-Healing** — Cache eviction? Kura automatically rebuilds from the data source — your app never sees stale or missing data
 - **Version management** — Switch reference data versions seamlessly via DB or CSV
+- **Pluggable data sources** — `LoaderInterface` lets you bring any backend: CSV, Eloquent, QueryBuilder, REST API, S3, etc. Built-in loaders included; swap or extend with 4 methods
 
 ## Requirements
 
@@ -128,6 +129,24 @@ $loader = new EloquentLoader(
     version: 'v1.0.0',
 );
 ```
+
+#### Option C: Custom Loader
+
+Any data source works — implement `LoaderInterface` with 4 methods:
+
+```php
+use Kura\Loader\LoaderInterface;
+
+class MyApiLoader implements LoaderInterface
+{
+    public function load(): \Generator { /* fetch & yield records */ }
+    public function columns(): array   { /* column → type map */ }
+    public function indexes(): array   { /* index definitions */ }
+    public function version(): string  { /* cache key identifier */ }
+}
+```
+
+See [Implementing a Custom Loader](docs/overview.md#implementing-a-custom-loader) for a full example.
 
 ### 3. Register tables
 
