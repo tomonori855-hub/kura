@@ -596,6 +596,40 @@ Self-Healing is a safety valve; if it triggers frequently, address as an infrast
 - Review cached tables (exclude unnecessary ones)
 - Exclude blob or large JSON columns from caching
 
+### Recommended Scale
+
+Kura is designed for **reference data that fits entirely in APCu** — data that is read-heavy,
+changes infrequently, and can be rebuilt in seconds to minutes from DB or CSV.
+
+| Records per table | APCu estimate | Notes |
+|---|---|---|
+| < 10K | < 10 MB | Trivial |
+| 10K – 100K | 10 – 100 MB | Comfortable operating range ✅ |
+| 100K – 500K | 100 – 500 MB | Requires `apc.shm_size` tuning; watch ids overhead |
+| > 500K | 500 MB+ | Not recommended — see below |
+
+**Recommended maximum: ~100K records per table.**
+
+#### Why ids becomes a bottleneck at large scale
+
+Every query fetches the full ids list from APCu and builds a PHP hashmap from it:
+
+```php
+$ids    = apcu_fetch('kura:products:v1:ids');  // deserialize all N entries
+$idsMap = array_fill_keys($ids, true);          // build another N-entry hashmap
+```
+
+At 1M records this allocates **~80–160 MB per request** just for ids, before any records
+are touched — even when an index narrows the actual candidates to a handful of rows.
+
+#### What to do for larger datasets
+
+- **Split into smaller tables** by category, status, or region — keep each table under 100K
+- **Pre-filter in the Loader** — load only the active or relevant subset, not the full table
+- **Exclude large columns** — omit blob, large JSON, or free-text columns from the cached record
+- **Consider a different tool** — for datasets that change frequently or exceed 500K rows,
+  a Redis-backed read model or a materialized DB view may be more appropriate
+
 ### Estimating apc.shm_size
 
 ```
