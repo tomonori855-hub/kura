@@ -226,7 +226,7 @@ LoaderInterface
      indexes(): list<array{columns, unique}>         Index definitions
      version(): string|int|Stringable                Version identifier
 
-Implementations are in separate packages (CsvLoader, EloquentLoader, etc.)
+CsvLoader / EloquentLoader / QueryBuilderLoader are included in src/Loader/
 ```
 
 ### Index Layer
@@ -294,7 +294,7 @@ ReferenceQueryBuilder
   └── CacheProcessor
         ├── CacheRepository
         │     ├── StoreInterface ←── ApcuStore / ArrayStore
-        │     └── LoaderInterface ←── Implemented in separate package
+        │     └── LoaderInterface ←── CsvLoader / EloquentLoader (src/Loader/)
         └── IndexResolver
               └── StoreInterface
 
@@ -316,7 +316,6 @@ data/
 ├── versions.csv                 id, version, activated_at
 └── products/
     ├── defines.csv              column, type, description
-    ├── indexes.csv              columns, unique
     └── data.csv                 data rows with version column
 ```
 
@@ -332,7 +331,7 @@ The most recent version where `activated_at <= current time` is used.
 
 ### data.csv
 
-`data.csv` requires a `version` column. The CsvLoader loads rows where `version = currentVersion` or `version IS NULL`. Rows with a null `version` are always loaded (shared across all versions).
+`data.csv` requires a `version` column. The CsvLoader loads rows where `version <= currentVersion` or `version IS NULL`. Rows with a null `version` are always loaded (shared across all versions). Rows with a future version are skipped.
 
 ```csv
 id,name,price,version

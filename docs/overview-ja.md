@@ -226,7 +226,7 @@ LoaderInterface
      indexes(): list<array{columns, unique}>         インデックス定義
      version(): string|int|Stringable                バージョン識別子
 
-実装は別パッケージ（CsvLoader, EloquentLoader 等）
+CsvLoader / EloquentLoader / QueryBuilderLoader は src/Loader/ に含まれる
 ```
 
 ### Index 層
@@ -294,7 +294,7 @@ ReferenceQueryBuilder
   └── CacheProcessor
         ├── CacheRepository
         │     ├── StoreInterface ←── ApcuStore / ArrayStore
-        │     └── LoaderInterface ←── 別パッケージで実装
+        │     └── LoaderInterface ←── CsvLoader / EloquentLoader（src/Loader/）
         └── IndexResolver
               └── StoreInterface
 
@@ -316,7 +316,6 @@ data/
 ├── versions.csv                 id, version, activated_at
 └── products/
     ├── defines.csv              column, type, description
-    ├── indexes.csv              columns, unique
     └── data.csv                 version カラムありのデータ行
 ```
 
@@ -332,7 +331,7 @@ id,version,activated_at
 
 ### data.csv
 
-`data.csv` には `version` カラムが必須です。CsvLoader は `version = 現在のバージョン` または `version が NULL` の行を読み込みます。`version` が NULL の行は全バージョン共通データとして常にロードされます。
+`data.csv` には `version` カラムが必須です。CsvLoader は `version <= 現在のバージョン` または `version が NULL` の行を読み込みます。`version` が NULL の行は全バージョン共通データとして常にロードされ、未来バージョンの行はスキップされます。
 
 ```csv
 id,name,price,version

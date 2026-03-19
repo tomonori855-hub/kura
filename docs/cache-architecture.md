@@ -5,7 +5,7 @@
 ## Overview
 
 Kura caches reference/master data in APCu and queries it via `ReferenceQueryBuilder`.
-Data loading is performed through `LoaderInterface`, with Loader implementations in separate packages.
+Data loading is performed through `LoaderInterface`. `CsvLoader`, `EloquentLoader`, and `QueryBuilderLoader` are all included in this package under `src/Loader/`.
 
 > **This document is the implementation design specification.** For overall structure and usage, see `overview.md`.
 >
@@ -41,7 +41,7 @@ ReferenceQueryBuilderInterface extends BuilderContract
             │    │    └─ ArrayStore (testing)
             │    │
             │    └─ LoaderInterface (data loading)
-            │         └─ Implemented in separate packages (CsvLoader, EloquentLoader, etc.)
+            │         └─ CsvLoader / EloquentLoader / QueryBuilderLoader (in src/Loader/)
             │
             └─ RecordCursor
                  Generator-based record traversal; delegates condition evaluation to WhereEvaluator
@@ -57,7 +57,7 @@ ReferenceQueryBuilderInterface extends BuilderContract
 - **QueryBuilder is state-only**: Holds where/order/limit state; execution is delegated to `CacheProcessor`.
   Index resolution, record traversal, and condition evaluation are all Processor responsibilities
 - **LoaderInterface is defined in Kura**: Has `load()`, `columns()`, `indexes()`.
-  Implementations (CSV, DB, etc.) are in separate packages
+  `CsvLoader`, `EloquentLoader`, and `QueryBuilderLoader` are included in `src/Loader/`
 
 ### LoaderInterface
 
@@ -555,7 +555,7 @@ Query execution
   │
   ├─ ids present + meta present → normal query (uses indexes)
   │
-  ├─ ids present + meta missing → respond via full scan + Queue dispatch for index/meta rebuild
+  ├─ ids present + meta missing → respond via full scan + Queue dispatch for full rebuild
   │
   ├─ ids missing → respond from Loader directly + Queue dispatch for full rebuild
   │
@@ -650,6 +650,59 @@ Guidelines:
 - Sum across all cached tables
 - Check actual usage with `apcu_cache_info('user')` and maintain usage below 80%
 
+### APCu Constraints and Production Considerations
+
+#### APCu is process-local
+
+APCu stores data in shared memory **within a single PHP-FPM process pool** (or CLI process).
+It is **not shared across servers**.
+
+```
+Server A  [PHP-FPM]  ←→  APCu (Server A only)
+Server B  [PHP-FPM]  ←→  APCu (Server B only)   ← independent cache
+Server C  [PHP-FPM]  ←→  APCu (Server C only)   ← independent cache
+```
+
+**Implications for multi-server deployments:**
+
+- Each server maintains its own independent cache
+- After a deployment, each server rebuilds its cache independently (triggered by the first request
+  that finds ids missing, or via `POST /kura/warm` called against each server)
+- A version change on one server does not propagate to others — version resolution happens
+  per-server per-request
+- **Recommended**: call the warm endpoint (or `artisan kura:rebuild`) on each server after deployment
+
+#### APCu is not available in PHP CLI by default
+
+APCu in CLI is disabled by default (`apc.enable_cli=0`).
+Enable it for artisan commands (including `kura:rebuild`):
+
+```ini
+; .docker/kura.ini or php.ini
+apc.enable_cli = 1
+```
+
+#### apc.shm_size tuning
+
+The default `apc.shm_size` is often 32MB — too small for production reference data.
+Set it based on your estimated usage (see "Estimating apc.shm_size" above):
+
+```ini
+apc.shm_size = 256M   ; adjust to your dataset size
+```
+
+Monitor usage in production:
+
+```php
+$info = apcu_cache_info('user');
+// $info['mem_size'] = total allocated
+// $info['cache_list'] = per-key details
+```
+
+Keep usage below **80%** to avoid eviction pressure triggering excessive self-healing.
+
+---
+
 ### Error Handling
 
 Kura recovers from cache losses but does not suppress Loader failures.
@@ -665,34 +718,39 @@ Loader availability is the responsibility of the Loader and infrastructure layer
 
 ```php
 // CacheProcessor::cursor()
-public function cursor(Builder $builder): Generator
-{
-    $meta = $repository->meta();
-    $ids = $repository->ids();
-
+public function cursor(
+    array $wheres,
+    array $orders,
+    ?int $limit,
+    ?int $offset,
+    bool $randomOrder,
+): Generator {
     // Lock present → cache consistency not guaranteed
     if ($repository->isLocked()) {
-        yield from $this->cursorFromLoader($builder);
+        yield from $this->cursorFromLoader($wheres, $orders, $limit, $offset, $randomOrder);
         return;
     }
+
+    $ids = $repository->ids();
 
     if ($ids === false) {
         // ids missing → Loader fallback + full rebuild dispatch
-        $this->dispatchRebuild($table, $version);
-        yield from $this->cursorFromLoader($builder);
+        $this->dispatchRebuild();
+        yield from $this->cursorFromLoader($wheres, $orders, $limit, $offset, $randomOrder);
         return;
     }
 
-    // meta missing → can't use indexes. full scan + index/meta rebuild dispatch
+    $meta = $repository->meta();
+
+    // meta missing → can't use indexes, dispatch full rebuild
     if ($meta === false) {
-        $this->dispatchRebuild($table, $version);
+        $this->dispatchRebuild();
     }
 
-    // meta present → narrow via indexes, meta missing → all ids
+    // meta present → narrow via IndexResolver, meta missing → all ids
     $candidateIds = $meta !== false
-        ? $this->resolveIds($builder, $ids, $meta)
+        ? $resolver->resolveIds($wheres, $meta) ?? $ids
         : $ids;
-    $predicate = $this->compilePredicate($builder);
 
     $idsMap = array_fill_keys($ids, true);
 
@@ -700,23 +758,28 @@ public function cursor(Builder $builder): Generator
         $record = $repository->find($id);
 
         if ($record === null && isset($idsMap[$id])) {
-            $this->dispatchRebuild($table, $version);
             throw new CacheInconsistencyException("Record {$id} missing");
         }
 
-        if ($record !== null && $predicate($record)) {
+        if ($record !== null && WhereEvaluator::evaluate($record, $wheres)) {
             yield $record;
         }
     }
 }
 
 // CacheProcessor::select() — called by get()
-public function select(Builder $builder): array
-{
+public function select(
+    array $wheres,
+    array $orders,
+    ?int $limit,
+    ?int $offset,
+    bool $randomOrder,
+): array {
     try {
-        return iterator_to_array($this->cursor($builder));
+        return iterator_to_array($this->cursor($wheres, $orders, $limit, $offset, $randomOrder));
     } catch (CacheInconsistencyException) {
-        return $this->selectFromLoader($builder);
+        $this->dispatchRebuild();
+        return iterator_to_array($this->cursorFromLoader($wheres, $orders, $limit, $offset, $randomOrder));
     }
 }
 ```
@@ -731,7 +794,8 @@ Uses `apcu_add` to acquire a lock key, preventing multiple simultaneous rebuilds
 
 - Lock acquired → execute rebuild
 - Lock acquisition failed → another process is rebuilding. Respond via Loader fallback only
-- Rebuild complete → lock expires naturally via TTL (not explicitly deleted = fail-safe)
+- Rebuild complete → lock is explicitly deleted via `apcu_delete()` in a `finally` block (immediate release)
+- TTL on the lock key is crash safety only — if the process dies, the lock auto-expires after the TTL
 
 ※ `apcu_add` is used only for locking. All data writes use `apcu_store`.
 
@@ -744,8 +808,9 @@ Uses `apcu_add` to acquire a lock key, preventing multiple simultaneous rebuilds
 - Works the same whether everything or only parts are missing
 - When Loader is called, all caches (ids, record, meta, index) are rebuilt
 
-**When only ids is lost**: meta/record/index are still alive, so only ids is rebuilt from Loader,
-and existing caches get their TTL reset via `apcu_store`. Full reload is not needed.
+**rebuild() always does a full flush + rebuild**: it calls `flush()` first to clear all existing cache
+keys for the table, then reloads everything from the Loader. There is no partial-rebuild path —
+all keys (ids, records, meta, indexes) are always re-written together.
 
 ### Rebuild Strategy
 
@@ -810,10 +875,14 @@ Use case: production — cache miss is transparent to the caller
 
 ---
 
-#### strategy: callback (custom dispatcher)
+#### Custom dispatcher (programmatic)
 
-Any custom dispatch logic — Horizon, custom job, Octane task, etc.
-Register a `Closure(CacheRepository): void` by overriding `KuraServiceProvider`:
+For custom dispatch logic — Horizon priority queues, Octane tasks, custom telemetry, etc.
+Register a `Closure(CacheRepository): void` via `app->extend()` in your `AppServiceProvider`.
+This approach works with any `strategy` config value (including `sync` or `queue` as a base):
+
+> **Note**: there is no `strategy: callback` config value. The custom dispatcher is registered
+> programmatically and overrides the configured strategy at runtime.
 
 ```php
 // app/Providers/AppServiceProvider.php
@@ -851,7 +920,7 @@ Use case: Horizon priority queues, Octane, custom telemetry, etc.
 |---|---|---|---|
 | **sync** | No | Loader + rebuild time | Dev / small scale / no queue |
 | **queue** | Yes (Laravel Queue) | Loader only | Production (recommended) |
-| **callback** | Your choice | Your choice | Custom infrastructure |
+| **custom** (`app->extend`) | Your choice | Your choice | Custom infrastructure / Horizon |
 
 ---
 

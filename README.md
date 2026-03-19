@@ -1,5 +1,8 @@
 > Japanese version: [README-ja.md](README-ja.md)
 
+> [!WARNING]
+> This package is currently under active development. APIs may change without notice before v1.0.0.
+
 # Kura
 
 **Kura** (蔵 — *storehouse*) is a Laravel package that caches reference data in APCu and queries it with a **Laravel QueryBuilder-compatible API**.
@@ -9,7 +12,7 @@ Load data once from CSV or DB, store it in APCu, and query it with the same flue
 ## Why Kura?
 
 - **Familiar API** — `where`, `orderBy`, `paginate`, `find`, `count`, `sum` — same as Laravel's QueryBuilder
-- **Sub-millisecond reads** — APCu shared memory, no network round-trips
+- **Sub-millisecond reads** — APCu shared memory, no network round-trips ([see benchmarks](#benchmarks))
 - **Low memory footprint** — Generator-based traversal; never loads entire datasets into PHP memory
 - **Smart indexes** — Binary search indexes for range queries, composite index hashmaps for O(1) multi-column lookups, automatic chunk splitting for large datasets
 - **Self-Healing** — Cache eviction? Kura automatically rebuilds from the data source — your app never sees stale or missing data
@@ -18,8 +21,8 @@ Load data once from CSV or DB, store it in APCu, and query it with the same flue
 
 ## Requirements
 
-- PHP ^8.4
-- Laravel ^12.0
+- PHP ^8.2
+- Laravel ^10.0 / ^11.0 / ^12.0
 - APCu extension (`pecl install apcu`)
 
 ## Installation
@@ -305,6 +308,91 @@ See [`config/kura.php`](config/kura.php) for all available options. Per-table ov
     ],
 ],
 ```
+
+## Benchmarks
+
+Measured on Apple M4 Pro / PHP 8.4 / APCu 5.1.28 (`apc.shm_size=256M`).
+Each scenario runs 500 iterations; p95 latency shown.
+
+| Scenario | 1K records | 10K records | 100K records |
+|---|---|---|---|
+| `find($id)` — single record | **0.7 µs** | **0.7 µs** | **0.7 µs** |
+| `where('country','JP')` — indexed `=` | **136 µs** | **1.4 ms** | **16 ms** |
+| `where('country','JP')->where('category','...')` — composite index | **96 µs** | **947 µs** | **11 ms** |
+| `whereBetween('price', [50,100])` — range index | **180 µs** | **1.7 ms** | **17 ms** |
+| `where('active', true)` — non-indexed (full scan) | 478 µs | 4.9 ms | 50 ms |
+| `where(...)->orderBy('price')` — indexed + sorted | 284 µs | 3.6 ms | 47 ms |
+| `get()` — all records | 392 µs | 3.9 ms | 40 ms |
+| Cache build (`rebuild()`) | 8.9 ms | 12.9 ms | 135 ms |
+
+Index-accelerated queries (**bold**) are 3–5× faster than full scans at all scales.
+At 100K records, indexed queries stay under 20ms; full scans reach ~50ms.
+
+> Run `php benchmarks/benchmark.php` in the Docker environment to reproduce.
+
+---
+
+## Cache Warming
+
+Pre-warm the APCu cache via HTTP after deployment (before traffic arrives).
+
+### Enable the warm endpoint
+
+```php
+// config/kura.php
+'warm' => [
+    'enabled' => true,
+    'token'   => env('KURA_WARM_TOKEN', ''),
+],
+```
+
+### Generate a Bearer token
+
+```bash
+php artisan kura:token          # generates and writes to .env
+php artisan kura:token --show   # display current token
+php artisan kura:token --force  # overwrite without confirmation
+```
+
+### Endpoints
+
+**`POST /kura/warm`** — rebuild cache for all registered tables
+
+```bash
+# Synchronous (strategy=sync, default)
+curl -X POST https://your-app.com/kura/warm \
+     -H "Authorization: Bearer $KURA_WARM_TOKEN"
+
+# Asynchronous via queue (strategy=queue)
+curl -X POST https://your-app.com/kura/warm \
+     -H "Authorization: Bearer $KURA_WARM_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"strategy": "queue"}'
+# → 202 {"batch_id": "abc123"}
+```
+
+**`GET /kura/warm/status/{batchId}`** — check async rebuild progress
+
+```bash
+curl https://your-app.com/kura/warm/status/abc123 \
+     -H "Authorization: Bearer $KURA_WARM_TOKEN"
+# → {"id":"abc123","totalJobs":3,"pendingJobs":1,"failedJobs":0,"finished":false}
+```
+
+### Testing without APCu
+
+Use `ArrayStore` as a drop-in replacement for `ApcuStore` in tests and CI:
+
+```php
+use Kura\Store\ArrayStore;
+
+$store = new ArrayStore;
+$repository = new CacheRepository(table: 'products', primaryKey: 'id', store: $store, loader: $loader);
+```
+
+`ArrayStore` operates on plain PHP arrays — no APCu extension required.
+
+---
 
 ## License
 
