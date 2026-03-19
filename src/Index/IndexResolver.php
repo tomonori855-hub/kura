@@ -42,9 +42,16 @@ final class IndexResolver
      * 1. Try composite index first (multiple AND equality conditions on a composite key).
      * 2. Fall back to per-condition resolution with AND/OR logic.
      *
+     * Partial AND resolution: if an AND condition cannot be index-resolved, it is
+     * skipped here and left to WhereEvaluator. This narrows candidates using whatever
+     * indexes are available without abandoning the entire index resolution.
+     *
+     * OR conditions are all-or-nothing: if any OR branch is not index-resolvable,
+     * we cannot safely narrow (records matching only that branch would be missed).
+     *
      * @param  list<array<string, mixed>>  $wheres
      * @param  array<string, mixed>  $meta
-     * @return list<int|string>|null null = at least one condition not index-resolvable
+     * @return list<int|string>|null null = cannot narrow (full scan needed)
      */
     public function resolveIds(array $wheres, array $meta): ?array
     {
@@ -58,35 +65,52 @@ final class IndexResolver
             return $compositeResult;
         }
 
-        // First condition always starts a new set
-        $firstIds = $this->resolveForWhere($wheres[0], $meta);
-        if ($firstIds === null) {
-            return null;
-        }
+        /** @var array<int|string, true>|null $result null = not yet established */
+        $result = null;
 
-        /** @var array<int|string, true> $result */
-        $result = array_fill_keys($firstIds, true);
+        // Track whether any AND conditions were skipped before the first resolved result.
+        // If true and we later encounter an OR, we cannot safely narrow.
+        $skippedAndBeforeResult = false;
 
-        $count = count($wheres);
-        for ($i = 1; $i < $count; $i++) {
-            $where = $wheres[$i];
+        foreach ($wheres as $where) {
+            $boolean = $where['boolean'] ?? 'and';
             $ids = $this->resolveForWhere($where, $meta);
 
             if ($ids === null) {
-                return null;
+                if ($boolean === 'or') {
+                    // Non-resolvable OR branch: records matching only this branch
+                    // would be missed → must full scan.
+                    return null;
+                }
+
+                // Non-resolvable AND: skip. WhereEvaluator will evaluate it.
+                if ($result === null) {
+                    $skippedAndBeforeResult = true;
+                }
+
+                continue;
             }
 
             $set = array_fill_keys($ids, true);
 
-            if (($where['boolean'] ?? 'and') === 'and') {
+            if ($result === null) {
+                if ($skippedAndBeforeResult && $boolean === 'or') {
+                    // Skipped AND conditions precede this OR — the OR's "other side"
+                    // is unknown, so we cannot safely narrow.
+                    return null;
+                }
+
+                $result = $set;
+            } elseif ($boolean === 'and') {
                 $result = array_intersect_key($result, $set);
             } else {
-                // OR: union
+                // OR: union. Previously skipped AND conditions only narrow the AND
+                // group, so $result is already a superset — safe to union.
                 $result += $set;
             }
         }
 
-        return array_keys($result);
+        return $result !== null ? array_keys($result) : null;
     }
 
     // -------------------------------------------------------------------------

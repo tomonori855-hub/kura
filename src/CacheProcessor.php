@@ -199,6 +199,9 @@ class CacheProcessor
     /**
      * Cache cursor for sorted/random queries — must collect all matching records.
      *
+     * Delegates inconsistency detection to RecordCursor via idsMap so records
+     * are fetched only once (no pre-validation pass).
+     *
      * @param  list<int|string>  $candidateIds
      * @param  array<int|string, true>  $idsMap
      * @param  list<array<string, mixed>>  $wheres
@@ -216,32 +219,15 @@ class CacheProcessor
         ?int $offset,
         bool $randomOrder,
     ): \Generator {
-        // Validate all candidate IDs and collect valid ones
-        $validIds = [];
-        foreach ($candidateIds as $id) {
-            $record = $this->repository->find($id);
-
-            if ($record === null && isset($idsMap[$id])) {
-                throw new CacheInconsistencyException(
-                    "Record {$id} missing from cache but present in ids for table {$this->repository->table()}",
-                    table: $this->repository->table(),
-                    recordId: $id,
-                );
-            }
-
-            if ($record !== null) {
-                $validIds[] = $id;
-            }
-        }
-
         yield from (new RecordCursor(
-            ids: $validIds,
+            ids: $candidateIds,
             repository: $this->repository,
             wheres: $wheres,
             orders: $orders,
             limit: $limit,
             offset: $offset,
             randomOrder: $randomOrder,
+            idsMap: $idsMap,
         ))->generate();
     }
 

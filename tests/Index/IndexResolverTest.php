@@ -244,7 +244,7 @@ class IndexResolverTest extends TestCase
         $this->assertSame([1, 6], $result, 'AND intersection should return IDs present in both index results');
     }
 
-    public function test_resolve_ids_falls_back_to_null_when_any_where_not_indexed(): void
+    public function test_resolve_ids_uses_partial_index_when_some_and_conditions_not_indexed(): void
     {
         $meta = $this->metaNoChunk();
 
@@ -253,10 +253,43 @@ class IndexResolverTest extends TestCase
             ['type' => 'basic', 'column' => 'name', 'operator' => '=', 'value' => 'Alice', 'boolean' => 'and'],
         ];
 
-        // name is not indexed → cannot fully resolve from index
+        // name is not indexed → skipped (WhereEvaluator handles it)
+        // country is indexed → narrows to JP candidates
         $result = $this->resolver->resolveIds($wheres, $meta);
 
-        $this->assertNull($result, 'Should return null when any AND condition is not index-resolvable');
+        $this->assertNotNull($result, 'Should use country index even though name has no index');
+        sort($result);
+        $this->assertSame([1, 3, 6], $result, 'Should return candidates narrowed by the indexed condition');
+    }
+
+    public function test_resolve_ids_returns_null_when_no_and_condition_is_indexed(): void
+    {
+        $meta = $this->metaNoChunk();
+
+        $wheres = [
+            ['type' => 'basic', 'column' => 'name', 'operator' => '=', 'value' => 'Alice', 'boolean' => 'and'],
+            ['type' => 'basic', 'column' => 'email', 'operator' => '=', 'value' => 'a@example.com', 'boolean' => 'and'],
+        ];
+
+        // name and email are both non-indexed → no candidates to narrow → full scan
+        $result = $this->resolver->resolveIds($wheres, $meta);
+
+        $this->assertNull($result, 'Should return null when no AND condition can use an index');
+    }
+
+    public function test_resolve_ids_returns_null_when_or_condition_is_not_indexed(): void
+    {
+        $meta = $this->metaNoChunk();
+
+        $wheres = [
+            ['type' => 'basic', 'column' => 'country', 'operator' => '=', 'value' => 'JP', 'boolean' => 'and'],
+            ['type' => 'basic', 'column' => 'name', 'operator' => '=', 'value' => 'Alice', 'boolean' => 'or'],
+        ];
+
+        // name is OR and not indexed → records matching only name=Alice would be missed
+        $result = $this->resolver->resolveIds($wheres, $meta);
+
+        $this->assertNull($result, 'Should return null when an OR branch cannot be index-resolved');
     }
 
     // =========================================================================
@@ -486,8 +519,11 @@ class IndexResolverTest extends TestCase
         // Then falls back to per-column index resolution (not composite)
         $result = $this->resolver->resolveIds($wheres, $meta);
 
-        // This will use single-column indexes, which exist in meta but not in store → null
-        $this->assertNull($result, 'Non-equality conditions should not use composite index');
+        // category>A is not resolvable (index not in store) → skipped
+        // country=JP IS resolvable → partial resolution returns JP candidates
+        $this->assertNotNull($result, 'Should use country index even though category index is missing from store');
+        sort($result);
+        $this->assertSame([1, 3, 6], $result, 'Should return candidates narrowed by the indexed condition');
     }
 
     public function test_resolve_composite_skipped_for_or_boolean(): void

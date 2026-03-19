@@ -3,6 +3,7 @@
 namespace Kura\Support;
 
 use Kura\CacheRepository;
+use Kura\Exceptions\CacheInconsistencyException;
 
 /**
  * Generator-based cursor that fetches and filters records from CacheRepository.
@@ -13,6 +14,10 @@ use Kura\CacheRepository;
  *   generateRandom() — reservoir sampling when limit is set, else shuffle
  *
  * Predicate evaluation is delegated to WhereEvaluator.
+ *
+ * When $idsMap is provided, record inconsistency is detected inline (one fetch pass).
+ * This avoids the double-fetch that occurs when CacheProcessor pre-validates IDs
+ * before delegating to this cursor for sorted/random queries.
  */
 class RecordCursor
 {
@@ -20,6 +25,7 @@ class RecordCursor
      * @param  list<int|string>  $ids
      * @param  list<array<string, mixed>>  $wheres  already resolved (no Closures in 'in')
      * @param  list<array{column: string, direction: string}>  $orders
+     * @param  array<int|string, true>  $idsMap  when non-empty, throws CacheInconsistencyException on record miss
      */
     public function __construct(
         private readonly array $ids,
@@ -29,6 +35,7 @@ class RecordCursor
         private readonly ?int $limit,
         private readonly ?int $offset,
         private readonly bool $randomOrder = false,
+        private readonly array $idsMap = [],
     ) {}
 
     /**
@@ -85,9 +92,23 @@ class RecordCursor
 
         foreach ($this->ids as $id) {
             $record = $this->repository->find($id);
-            if ($record === null || ! WhereEvaluator::evaluate($record, $this->wheres)) {
+
+            if ($record === null) {
+                if ($this->idsMap !== [] && isset($this->idsMap[$id])) {
+                    throw new CacheInconsistencyException(
+                        "Record {$id} missing from cache but present in ids for table {$this->repository->table()}",
+                        table: $this->repository->table(),
+                        recordId: $id,
+                    );
+                }
+
                 continue;
             }
+
+            if (! WhereEvaluator::evaluate($record, $this->wheres)) {
+                continue;
+            }
+
             $records[] = $record;
         }
 
@@ -118,9 +139,23 @@ class RecordCursor
             $records = [];
             foreach ($this->ids as $id) {
                 $record = $this->repository->find($id);
-                if ($record === null || ! WhereEvaluator::evaluate($record, $this->wheres)) {
+
+                if ($record === null) {
+                    if ($this->idsMap !== [] && isset($this->idsMap[$id])) {
+                        throw new CacheInconsistencyException(
+                            "Record {$id} missing from cache but present in ids for table {$this->repository->table()}",
+                            table: $this->repository->table(),
+                            recordId: $id,
+                        );
+                    }
+
                     continue;
                 }
+
+                if (! WhereEvaluator::evaluate($record, $this->wheres)) {
+                    continue;
+                }
+
                 $records[] = $record;
             }
 
@@ -140,7 +175,20 @@ class RecordCursor
 
         foreach ($this->ids as $id) {
             $record = $this->repository->find($id);
-            if ($record === null || ! WhereEvaluator::evaluate($record, $this->wheres)) {
+
+            if ($record === null) {
+                if ($this->idsMap !== [] && isset($this->idsMap[$id])) {
+                    throw new CacheInconsistencyException(
+                        "Record {$id} missing from cache but present in ids for table {$this->repository->table()}",
+                        table: $this->repository->table(),
+                        recordId: $id,
+                    );
+                }
+
+                continue;
+            }
+
+            if (! WhereEvaluator::evaluate($record, $this->wheres)) {
                 continue;
             }
 
