@@ -5,10 +5,10 @@
 
 # Kura
 
-[![Tests](https://github.com/tomonori/kura/actions/workflows/tests.yml/badge.svg)](https://github.com/tomonori/kura/actions/workflows/tests.yml)
+[![Tests](https://github.com/tomonori855-hub/kura/actions/workflows/tests.yml/badge.svg)](https://github.com/tomonori855-hub/kura/actions/workflows/tests.yml)
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/tomonori/kura.svg)](https://packagist.org/packages/tomonori/kura)
 [![PHP Version](https://img.shields.io/badge/php-%5E8.2-blue)](https://www.php.net/)
-[![License](https://img.shields.io/github/license/tomonori/kura)](LICENSE)
+[![License](https://img.shields.io/github/license/tomonori855-hub/kura)](LICENSE)
 
 **Kura**（蔵）は、リファレンスデータを APCu にキャッシュし、**Laravel QueryBuilder 互換の API** で検索できる Laravel パッケージです。
 
