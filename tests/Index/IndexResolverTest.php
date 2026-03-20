@@ -577,4 +577,108 @@ class IndexResolverTest extends TestCase
 
         $this->assertNull($result, 'NOT IN should return null — not efficiently index-resolvable');
     }
+
+    // -------------------------------------------------------------------------
+    // Nested group index resolution
+    // -------------------------------------------------------------------------
+
+    public function test_nested_group_uses_index_recursively(): void
+    {
+        // Given: a nested group with indexed inner conditions
+        $where = [
+            'type' => 'nested',
+            'not' => false,
+            'boolean' => 'and',
+            'wheres' => [
+                ['type' => 'basic', 'column' => 'country', 'operator' => '=', 'value' => 'JP', 'boolean' => 'and', 'not' => false],
+            ],
+        ];
+
+        // When: resolving the nested group
+        $result = $this->resolver()->resolveForWhere($where);
+
+        // Then: inner index is used — returns IDs for country='JP'
+        $this->assertNotNull($result, 'nested group with indexed inner condition should be index-resolved');
+        sort($result);
+        $this->assertSame([1, 3, 6], $result, 'should return IDs from inner index');
+    }
+
+    public function test_nested_or_group_resolved_via_index(): void
+    {
+        // Given: nested (country='JP' OR country='DE') — both indexed
+        $where = [
+            'type' => 'nested',
+            'not' => false,
+            'boolean' => 'and',
+            'wheres' => [
+                ['type' => 'basic', 'column' => 'country', 'operator' => '=', 'value' => 'JP', 'boolean' => 'and', 'not' => false],
+                ['type' => 'basic', 'column' => 'country', 'operator' => '=', 'value' => 'DE', 'boolean' => 'or', 'not' => false],
+            ],
+        ];
+
+        $result = $this->resolver()->resolveForWhere($where);
+
+        // Then: union of JP and DE
+        $this->assertNotNull($result, 'nested OR with all indexed should be resolved');
+        sort($result);
+        $this->assertSame([1, 3, 4, 6], $result, 'should union JP [1,3,6] and DE [4]');
+    }
+
+    public function test_nested_group_with_not_returns_null(): void
+    {
+        // Given: whereNot(Closure) — negation cannot be index-resolved
+        $where = [
+            'type' => 'nested',
+            'not' => true,
+            'boolean' => 'and',
+            'wheres' => [
+                ['type' => 'basic', 'column' => 'country', 'operator' => '=', 'value' => 'JP', 'boolean' => 'and', 'not' => false],
+            ],
+        ];
+
+        $result = $this->resolver()->resolveForWhere($where);
+
+        $this->assertNull($result, 'negated nested group (whereNot) cannot be index-resolved');
+    }
+
+    public function test_nested_or_with_non_indexed_falls_back_to_null(): void
+    {
+        // Given: nested (country='JP' OR active=true) — active is not indexed
+        $where = [
+            'type' => 'nested',
+            'not' => false,
+            'boolean' => 'and',
+            'wheres' => [
+                ['type' => 'basic', 'column' => 'country', 'operator' => '=', 'value' => 'JP', 'boolean' => 'and', 'not' => false],
+                ['type' => 'basic', 'column' => 'active', 'operator' => '=', 'value' => true, 'boolean' => 'or', 'not' => false],
+            ],
+        ];
+
+        $result = $this->resolver()->resolveForWhere($where);
+
+        $this->assertNull($result, 'nested OR with a non-indexed branch cannot be index-resolved');
+    }
+
+    public function test_and_with_nested_indexed_group_uses_intersection(): void
+    {
+        // Given: (country='JP' nested) AND price=500  — both indexed
+        // resolveIds sees: [{nested: country=JP}, {basic: price=500, boolean: and}]
+        $wheres = [
+            [
+                'type' => 'nested',
+                'not' => false,
+                'boolean' => 'and',
+                'wheres' => [
+                    ['type' => 'basic', 'column' => 'country', 'operator' => '=', 'value' => 'JP', 'boolean' => 'and', 'not' => false],
+                ],
+            ],
+            ['type' => 'basic', 'column' => 'price', 'operator' => '=', 'value' => 500, 'boolean' => 'and', 'not' => false],
+        ];
+
+        $result = $this->resolver()->resolveIds($wheres);
+
+        // JP = [1,3,6], price=500 = [6,9,15] → intersection = [6]
+        $this->assertNotNull($result, 'should resolve via nested + AND index intersection');
+        $this->assertSame([6], $result, 'intersection of JP [1,3,6] and price=500 [6,9,15] should be [6]');
+    }
 }

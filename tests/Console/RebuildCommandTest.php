@@ -5,6 +5,7 @@ namespace Kura\Tests\Console;
 use Illuminate\Testing\PendingCommand;
 use Kura\KuraManager;
 use Kura\KuraServiceProvider;
+use Kura\Loader\LoaderInterface;
 use Kura\Store\ArrayStore;
 use Kura\Store\StoreInterface;
 use Kura\Tests\Support\InMemoryLoader;
@@ -166,7 +167,7 @@ class RebuildCommandTest extends TestCase
         // Given: a loader that throws an exception
         $manager = $this->manager();
 
-        $failingLoader = new class implements \Kura\Loader\LoaderInterface
+        $failingLoader = new class implements LoaderInterface
         {
             public function load(): \Generator
             {

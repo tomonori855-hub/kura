@@ -3,6 +3,7 @@
 namespace Kura\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Foundation\Application;
 use Illuminate\Support\Str;
 
 class TokenCommand extends Command
@@ -56,7 +57,7 @@ class TokenCommand extends Command
 
     private function writeToEnv(string $token): bool
     {
-        /** @var \Illuminate\Foundation\Application $app */
+        /** @var Application $app */
         $app = $this->laravel;
         $envPath = $app->environmentFilePath();
 

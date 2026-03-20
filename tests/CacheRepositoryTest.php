@@ -3,6 +3,7 @@
 namespace Kura\Tests;
 
 use Kura\CacheRepository;
+use Kura\Loader\LoaderInterface;
 use Kura\Store\ArrayStore;
 use Kura\Tests\Support\InMemoryLoader;
 use PHPUnit\Framework\TestCase;
@@ -330,7 +331,7 @@ class CacheRepositoryTest extends TestCase
 
     public function test_rebuild_releases_lock_on_loader_exception(): void
     {
-        $failingLoader = new class implements \Kura\Loader\LoaderInterface
+        $failingLoader = new class implements LoaderInterface
         {
             public function load(): \Generator
             {

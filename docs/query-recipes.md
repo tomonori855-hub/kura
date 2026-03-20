@@ -85,24 +85,73 @@ $stations = Kura::table('stations')
 
 ### Nested Groups
 
+Wrap conditions in a `Closure` to create a parenthesised group — identical to how `where(Closure)` works in Laravel's QueryBuilder.
+
 ```php
-// WHERE (prefecture = 'Tokyo' OR prefecture = 'Osaka') AND line_id = 1
-$stations = Kura::table('stations')
+// WHERE (country = 'JP' OR country = 'DE') AND age >= 25
+$users = Kura::table('users')
     ->where(function ($q) {
-        $q->where('prefecture', 'Tokyo')
-          ->orWhere('prefecture', 'Osaka');
+        $q->where('country', 'JP')
+          ->orWhere('country', 'DE');
     })
-    ->where('line_id', 1)
+    ->where('age', '>=', 25)
+    ->get();
+
+// WHERE country = 'US' AND (age < 30 OR score > 80)
+$users = Kura::table('users')
+    ->where('country', 'US')
+    ->where(function ($q) {
+        $q->where('age', '<', 30)
+          ->orWhere('score', '>', 80);
+    })
+    ->get();
+
+// WHERE (country = 'JP' AND age >= 25) OR (country = 'US' AND score >= 70)
+$users = Kura::table('users')
+    ->where(function ($q) {
+        $q->where('country', 'JP')
+          ->where('age', '>=', 25);
+    })
+    ->orWhere(function ($q) {
+        $q->where('country', 'US')
+          ->where('score', '>=', 70);
+    })
+    ->get();
+
+// Deep nesting: WHERE ((country = 'JP' OR country = 'DE') AND score >= 85) OR (country = 'US' AND age < 30)
+$users = Kura::table('users')
+    ->where(function ($q) {
+        $q->where(function ($q2) {
+            $q2->where('country', 'JP')
+               ->orWhere('country', 'DE');
+        })->where('score', '>=', 85);
+    })
+    ->orWhere(function ($q) {
+        $q->where('country', 'US')
+          ->where('age', '<', 30);
+    })
     ->get();
 ```
+
+> **Note**: Unlike Laravel's `whereIn(column, Closure)` which builds a SQL subquery,
+> `where(Closure)` in Kura always creates a **grouped condition** (the closure receives a
+> `ReferenceQueryBuilder` instance to add conditions to, not a subquery builder).
 
 ### Negation
 
 ```php
-// whereNot with closure
+// WHERE NOT (status = 'closed')
 $stations = Kura::table('stations')
     ->whereNot(function ($q) {
         $q->where('status', 'closed');
+    })
+    ->get();
+
+// WHERE NOT (country = 'JP' AND age < 20)
+$users = Kura::table('users')
+    ->whereNot(function ($q) {
+        $q->where('country', 'JP')
+          ->where('age', '<', 20);
     })
     ->get();
 ```

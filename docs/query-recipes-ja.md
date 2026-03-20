@@ -85,24 +85,73 @@ $stations = Kura::table('stations')
 
 ### ネストされたグループ
 
+`Closure` で条件をラップすると括弧グループになります — Laravel の `where(Closure)` と同じ挙動です。
+
 ```php
-// WHERE (prefecture = 'Tokyo' OR prefecture = 'Osaka') AND line_id = 1
-$stations = Kura::table('stations')
+// WHERE (country = 'JP' OR country = 'DE') AND age >= 25
+$users = Kura::table('users')
     ->where(function ($q) {
-        $q->where('prefecture', 'Tokyo')
-          ->orWhere('prefecture', 'Osaka');
+        $q->where('country', 'JP')
+          ->orWhere('country', 'DE');
     })
-    ->where('line_id', 1)
+    ->where('age', '>=', 25)
+    ->get();
+
+// WHERE country = 'US' AND (age < 30 OR score > 80)
+$users = Kura::table('users')
+    ->where('country', 'US')
+    ->where(function ($q) {
+        $q->where('age', '<', 30)
+          ->orWhere('score', '>', 80);
+    })
+    ->get();
+
+// WHERE (country = 'JP' AND age >= 25) OR (country = 'US' AND score >= 70)
+$users = Kura::table('users')
+    ->where(function ($q) {
+        $q->where('country', 'JP')
+          ->where('age', '>=', 25);
+    })
+    ->orWhere(function ($q) {
+        $q->where('country', 'US')
+          ->where('score', '>=', 70);
+    })
+    ->get();
+
+// 深いネスト: WHERE ((country = 'JP' OR country = 'DE') AND score >= 85) OR (country = 'US' AND age < 30)
+$users = Kura::table('users')
+    ->where(function ($q) {
+        $q->where(function ($q2) {
+            $q2->where('country', 'JP')
+               ->orWhere('country', 'DE');
+        })->where('score', '>=', 85);
+    })
+    ->orWhere(function ($q) {
+        $q->where('country', 'US')
+          ->where('age', '<', 30);
+    })
     ->get();
 ```
+
+> **注意**: Laravel の `whereIn(column, Closure)` は SQL サブクエリを生成しますが、
+> Kura の `where(Closure)` は常に **条件グループ** を作ります（クロージャは `ReferenceQueryBuilder`
+> インスタンスを受け取り、条件を追加します。サブクエリビルダーではありません）。
 
 ### 否定
 
 ```php
-// クロージャを使った whereNot
+// WHERE NOT (status = 'closed')
 $stations = Kura::table('stations')
     ->whereNot(function ($q) {
         $q->where('status', 'closed');
+    })
+    ->get();
+
+// WHERE NOT (country = 'JP' AND age < 20)
+$users = Kura::table('users')
+    ->whereNot(function ($q) {
+        $q->where('country', 'JP')
+          ->where('age', '<', 20);
     })
     ->get();
 ```

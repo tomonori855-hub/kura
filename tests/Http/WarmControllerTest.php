@@ -2,6 +2,7 @@
 
 namespace Kura\Tests\Http;
 
+use Illuminate\Bus\PendingBatch;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Schema;
 use Kura\Jobs\RebuildCacheJob;
@@ -192,7 +193,7 @@ class WarmControllerTest extends TestCase
         $response->assertJsonPath('message', 'Rebuild dispatched.');
         $response->assertJsonPath('tables.products.status', 'dispatched');
 
-        Bus::assertBatched(function (\Illuminate\Bus\PendingBatch $batch): bool {
+        Bus::assertBatched(function (PendingBatch $batch): bool {
             return count($batch->jobs) === 1
                 && $batch->jobs[0] instanceof RebuildCacheJob
                 && $batch->jobs[0]->table === 'products';
@@ -215,7 +216,7 @@ class WarmControllerTest extends TestCase
         ]);
 
         // Then: each job carries the configured connection and queue
-        Bus::assertBatched(function (\Illuminate\Bus\PendingBatch $batch): bool {
+        Bus::assertBatched(function (PendingBatch $batch): bool {
             $job = $batch->jobs[0];
 
             return $job instanceof RebuildCacheJob
@@ -240,7 +241,7 @@ class WarmControllerTest extends TestCase
         // Then: 202 and dispatched job carries the version
         $response->assertStatus(202);
 
-        Bus::assertBatched(function (\Illuminate\Bus\PendingBatch $batch): bool {
+        Bus::assertBatched(function (PendingBatch $batch): bool {
             return $batch->jobs[0] instanceof RebuildCacheJob
                 && $batch->jobs[0]->version === 'v2.0.0';
         });
@@ -269,7 +270,7 @@ class WarmControllerTest extends TestCase
         // Then: 202 and batch has 2 jobs (products + categories)
         $response->assertStatus(202);
 
-        Bus::assertBatched(function (\Illuminate\Bus\PendingBatch $batch): bool {
+        Bus::assertBatched(function (PendingBatch $batch): bool {
             return count($batch->jobs) === 2;
         });
     }
@@ -282,7 +283,7 @@ class WarmControllerTest extends TestCase
         $this->app['config']->set('kura.rebuild.strategy', 'queue');
 
         // Simulate missing job_batches table via Schema mock
-        \Illuminate\Support\Facades\Schema::shouldReceive('hasTable')
+        Schema::shouldReceive('hasTable')
             ->with('job_batches')
             ->andReturn(false);
 

@@ -46,6 +46,7 @@ final class IndexResolver
             'between' => $this->resolveBetween($where),
             'in' => $this->resolveIn($where),
             'rowValuesIn' => $this->resolveRowValuesIn($where),
+            'nested' => ($where['not'] ?? false) ? null : $this->resolveIds($where['wheres']),
             default => null,
         };
     }

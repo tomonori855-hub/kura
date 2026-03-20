@@ -2,12 +2,17 @@
 
 namespace Kura\Tests;
 
+use Illuminate\Testing\PendingCommand;
+use Kura\CacheProcessor;
+use Kura\CacheRepository;
 use Kura\Contracts\VersionResolverInterface;
 use Kura\Facades\Kura;
 use Kura\KuraManager;
 use Kura\KuraServiceProvider;
+use Kura\ReferenceQueryBuilder;
 use Kura\Store\ArrayStore;
 use Kura\Store\StoreInterface;
+use Kura\Tests\Support\InMemoryLoader;
 use Orchestra\Testbench\TestCase;
 
 /**
@@ -98,7 +103,7 @@ class KuraServiceProviderTest extends TestCase
     {
         // When: running kura:rebuild with no tables
         $result = $this->artisan('kura:rebuild');
-        assert($result instanceof \Illuminate\Testing\PendingCommand);
+        assert($result instanceof PendingCommand);
 
         // Then: command should exist and succeed
         $result->assertSuccessful();
@@ -231,10 +236,10 @@ class KuraServiceProviderTest extends TestCase
     {
         // Arrange: callback is invoked by CacheProcessor::dispatchRebuild() when cache is empty
         $called = false;
-        $store = new \Kura\Store\ArrayStore;
-        $loader = new \Kura\Tests\Support\InMemoryLoader([['id' => 1, 'name' => 'A']]);
+        $store = new ArrayStore;
+        $loader = new InMemoryLoader([['id' => 1, 'name' => 'A']]);
 
-        $repository = new \Kura\CacheRepository(
+        $repository = new CacheRepository(
             table: 'items',
             primaryKey: 'id',
             store: $store,
@@ -245,13 +250,13 @@ class KuraServiceProviderTest extends TestCase
             $called = true;
         };
 
-        $processor = new \Kura\CacheProcessor(
+        $processor = new CacheProcessor(
             repository: $repository,
             store: $store,
             rebuildDispatcher: \Closure::fromCallable($dispatcher),
         );
 
-        $builder = new \Kura\ReferenceQueryBuilder(
+        $builder = new ReferenceQueryBuilder(
             table: 'items',
             repository: $repository,
             processor: $processor,
@@ -277,6 +282,7 @@ class KuraServiceProviderTest extends TestCase
 
         // Act & Assert — exception thrown when KuraManager is resolved
         $this->expectException(\InvalidArgumentException::class);
+        assert($this->app !== null);
         $this->app->make(KuraManager::class);
     }
 

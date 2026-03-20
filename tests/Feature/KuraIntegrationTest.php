@@ -28,7 +28,7 @@ class KuraIntegrationTest extends TestCase
 
     protected function getPackageAliases($app): array
     {
-        return ['Kura' => \Kura\Facades\Kura::class];
+        return ['Kura' => Kura::class];
     }
 
     protected function defineEnvironment($app): void

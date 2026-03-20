@@ -2,6 +2,7 @@
 
 namespace Kura;
 
+use Illuminate\Config\Repository;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Kura\Console\RebuildCommand;
@@ -36,7 +37,7 @@ class KuraServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(VersionResolverInterface::class, function ($app) {
-            /** @var \Illuminate\Config\Repository $config */
+            /** @var Repository $config */
             $config = $app->make('config');
 
             /** @var string $driver */
@@ -110,7 +111,7 @@ class KuraServiceProvider extends ServiceProvider
      */
     private function autoDiscoverCsvTables(): void
     {
-        /** @var \Illuminate\Config\Repository $config */
+        /** @var Repository $config */
         $config = $this->app->make('config');
 
         if (! $config->get('kura.csv.auto_discover', false)) {
@@ -168,7 +169,7 @@ class KuraServiceProvider extends ServiceProvider
 
     private function registerWarmRoute(): void
     {
-        /** @var \Illuminate\Config\Repository $config */
+        /** @var Repository $config */
         $config = $this->app->make('config');
 
         if (! $config->get('kura.warm.enabled', false)) {
@@ -204,7 +205,7 @@ class KuraServiceProvider extends ServiceProvider
      */
     private function buildRebuildDispatcher(): ?\Closure
     {
-        /** @var \Illuminate\Config\Repository $config */
+        /** @var Repository $config */
         $config = $this->app->make('config');
 
         /** @var string $strategy */

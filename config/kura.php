@@ -1,5 +1,8 @@
 <?php
 
+use Kura\Http\Controllers\WarmController;
+use Kura\Http\Controllers\WarmStatusController;
+
 return [
     /*
      * APCu key prefix.
@@ -86,8 +89,8 @@ return [
         'enabled' => false,
         'token' => env('KURA_WARM_TOKEN', ''),
         'path' => 'kura/warm',
-        'controller' => \Kura\Http\Controllers\WarmController::class,
-        'status_controller' => \Kura\Http\Controllers\WarmStatusController::class,
+        'controller' => WarmController::class,
+        'status_controller' => WarmStatusController::class,
     ],
 
     /*

@@ -2,6 +2,7 @@
 
 namespace Kura\Http\Middleware;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -22,7 +23,7 @@ class KuraAuthMiddleware
         $configuredToken = config('kura.warm.token', '');
 
         if ($configuredToken === '') {
-            return new \Illuminate\Http\JsonResponse(
+            return new JsonResponse(
                 ['message' => 'Warm endpoint is not configured. Set kura.warm.token.'],
                 403,
             );
@@ -31,7 +32,7 @@ class KuraAuthMiddleware
         $bearerToken = $request->bearerToken();
 
         if ($bearerToken === null || ! hash_equals($configuredToken, $bearerToken)) {
-            return new \Illuminate\Http\JsonResponse(
+            return new JsonResponse(
                 ['message' => 'Unauthorized.'],
                 401,
             );
