@@ -386,7 +386,7 @@ Kura is intentionally narrow in scope. Two operations are central: **QueryBuilde
 | Full-table load (no partial updates) | Ensures consistency; diff rebuilds are not supported |
 | Self-healing is always active | Triggered automatically on missing `ids` key; cannot be disabled |
 | Index types: unique, non-unique, composite | Declared by the Loader; no runtime registration API |
-| QueryBuilder join / subquery / raw methods excluded | These have no meaning over in-memory flat data |
+| QueryBuilder join / raw / cross-table subquery methods excluded | These have no meaning over in-memory flat data; closure-based condition grouping within a single table is supported |
 
 See [Design Constraints](docs/design-constraints.md) for extension patterns, memory model details, and contribution rules.
 

@@ -149,7 +149,7 @@ Kura は Laravel の `Illuminate\Database\Query\Builder` から約99のメソッ
 - `toSql`, `dd`, `dump`（クエリコンパイル）
 - `lock`, `lockForUpdate`, `sharedLock`
 - `union`, `unionAll`
-- 他のテーブルを参照するサブクエリ系 `where`
+- **他のテーブルを参照する** `where` クロージャー（クロステーブルのサブクエリはインメモリのフラットデータに対して意味をなさない。同一テーブル内の条件グルーピングを行うクロージャーは対応している）
 
 対象外のメソッドを呼ぶと `\BadMethodCallException` がスローされます。
 

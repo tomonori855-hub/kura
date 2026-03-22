@@ -149,7 +149,7 @@ Kura implements ~99 methods from Laravel's `Illuminate\Database\Query\Builder`. 
 - `toSql`, `dd`, `dump` (query compilation)
 - `lock`, `lockForUpdate`, `sharedLock`
 - `union`, `unionAll`
-- Subquery-based `where` closures that reference other tables
+- `where` closures that reference **other tables** (cross-table subqueries have no meaning over in-memory flat data; closures that group conditions within the same table are supported)
 
 If you call an out-of-scope method, Kura will throw `\BadMethodCallException`.
 
