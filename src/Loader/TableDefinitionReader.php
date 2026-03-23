@@ -2,12 +2,22 @@
 
 namespace Kura\Loader;
 
+use Symfony\Component\Yaml\Yaml;
+
 /**
- * Reads column type definitions and index definitions from CSV files.
+ * Reads column type definitions, index definitions, and primary key from a YAML file.
  *
- * Expected files in the table directory:
- *   defines.csv   — column,type,description
- *   indexes.csv   — columns,unique
+ * Expected file in the table directory:
+ *   table.yaml
+ *
+ * Format:
+ *   primary_key: id        # optional, defaults to 'id'
+ *   columns:
+ *     id: int
+ *     code: string
+ *   indexes:               # optional
+ *     - columns: [code]
+ *       unique: true
  *
  * Results are cached per instance (read once, reused).
  */
@@ -18,6 +28,11 @@ final class TableDefinitionReader
 
     /** @var list<array{columns: list<string>, unique: bool}>|null */
     private ?array $indexes = null;
+
+    private ?string $primaryKey = null;
+
+    /** @var array<string, mixed>|null */
+    private ?array $yaml = null;
 
     public function __construct(private readonly string $tableDirectory) {}
 
@@ -30,27 +45,21 @@ final class TableDefinitionReader
             return $this->columns;
         }
 
-        $file = $this->tableDirectory.'/defines.csv';
+        $yaml = $this->loadYaml();
 
-        if (! file_exists($file)) {
+        if (! isset($yaml['columns']) || ! is_array($yaml['columns'])) {
             return $this->columns = [];
         }
 
-        $fp = fopen($file, 'r');
-        if ($fp === false) {
-            return $this->columns = [];
-        }
-
-        fgetcsv($fp, escape: ''); // skip header
+        /** @var array<string, mixed> $rawColumns */
+        $rawColumns = $yaml['columns'];
 
         $types = [];
-        while (($row = fgetcsv($fp, escape: '')) !== false) {
-            if (count($row) >= 2 && $row[0] !== null && $row[1] !== null) {
-                $types[$row[0]] = $row[1];
+        foreach ($rawColumns as $column => $type) {
+            if (is_string($type)) {
+                $types[$column] = $type;
             }
         }
-
-        fclose($fp);
 
         return $this->columns = $types;
     }
@@ -64,42 +73,88 @@ final class TableDefinitionReader
             return $this->indexes;
         }
 
-        $file = $this->tableDirectory.'/indexes.csv';
+        $yaml = $this->loadYaml();
 
-        if (! file_exists($file)) {
+        if (! isset($yaml['indexes']) || ! is_array($yaml['indexes'])) {
             return $this->indexes = [];
         }
 
-        $fp = fopen($file, 'r');
-        if ($fp === false) {
-            return $this->indexes = [];
-        }
-
-        fgetcsv($fp, escape: ''); // skip header
+        /** @var list<mixed> $rawIndexes */
+        $rawIndexes = array_values($yaml['indexes']);
 
         $indexes = [];
-        while (($row = fgetcsv($fp, escape: '')) !== false) {
-            if (count($row) < 2 || $row[0] === null || $row[1] === null) {
+        foreach ($rawIndexes as $entry) {
+            if (! is_array($entry)) {
                 continue;
             }
 
-            $columns = array_values(array_filter(
-                explode('|', $row[0]),
-                fn (string $c) => $c !== '',
-            ));
+            if (! isset($entry['columns']) || ! is_array($entry['columns'])) {
+                continue;
+            }
+
+            /** @var list<mixed> $cols */
+            $cols = array_values($entry['columns']);
+
+            $columns = [];
+            foreach ($cols as $col) {
+                if (is_string($col) && $col !== '') {
+                    $columns[] = $col;
+                }
+            }
 
             if ($columns === []) {
                 continue;
             }
 
+            $unique = isset($entry['unique']) && (bool) $entry['unique'];
+
             $indexes[] = [
                 'columns' => $columns,
-                'unique' => $row[1] === 'true',
+                'unique' => $unique,
             ];
         }
 
-        fclose($fp);
-
         return $this->indexes = $indexes;
+    }
+
+    public function primaryKey(): string
+    {
+        if ($this->primaryKey !== null) {
+            return $this->primaryKey;
+        }
+
+        $yaml = $this->loadYaml();
+
+        if (isset($yaml['primary_key']) && is_string($yaml['primary_key']) && $yaml['primary_key'] !== '') {
+            return $this->primaryKey = $yaml['primary_key'];
+        }
+
+        return $this->primaryKey = 'id';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function loadYaml(): array
+    {
+        if ($this->yaml !== null) {
+            return $this->yaml;
+        }
+
+        $file = $this->tableDirectory.'/table.yaml';
+
+        if (! file_exists($file)) {
+            return $this->yaml = [];
+        }
+
+        $content = file_get_contents($file);
+        if ($content === false || $content === '') {
+            return $this->yaml = [];
+        }
+
+        /** @var array<string, mixed>|null $parsed */
+        $parsed = Yaml::parse($content);
+
+        return $this->yaml = is_array($parsed) ? $parsed : [];
     }
 }

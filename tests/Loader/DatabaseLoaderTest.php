@@ -11,6 +11,7 @@ use Kura\Store\ArrayStore;
 use Kura\Store\StoreInterface;
 use Kura\Tests\Support\ProductModel;
 use Orchestra\Testbench\TestCase;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Feature: EloquentLoader and QueryBuilderLoader load records from DB
@@ -47,11 +48,13 @@ class DatabaseLoaderTest extends TestCase
         $this->tmpDir = sys_get_temp_dir().'/kura_dbloader_test_'.uniqid();
         mkdir($this->tmpDir.'/products', recursive: true);
 
-        $this->writeDefinesCsv($this->tmpDir.'/products', [
-            ['id', 'int', 'PK'],
-            ['name', 'string', 'Name'],
-            ['country', 'string', 'Country'],
-            ['price', 'int', 'Price'],
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => [
+                'id' => 'int',
+                'name' => 'string',
+                'country' => 'string',
+                'price' => 'int',
+            ],
         ]);
 
         assert($this->app !== null);
@@ -80,28 +83,12 @@ class DatabaseLoaderTest extends TestCase
     // Helpers
     // =========================================================================
 
-    /** @param list<list<string>> $rows */
-    private function writeDefinesCsv(string $dir, array $rows): void
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function writeYaml(string $path, array $data): void
     {
-        $fp = fopen($dir.'/defines.csv', 'w');
-        assert($fp !== false);
-        fputcsv($fp, ['column', 'type', 'description'], escape: '');
-        foreach ($rows as $row) {
-            fputcsv($fp, $row, escape: '');
-        }
-        fclose($fp);
-    }
-
-    /** @param list<list<string>> $rows */
-    private function writeIndexesCsv(string $dir, array $rows): void
-    {
-        $fp = fopen($dir.'/indexes.csv', 'w');
-        assert($fp !== false);
-        fputcsv($fp, ['columns', 'unique'], escape: '');
-        foreach ($rows as $row) {
-            fputcsv($fp, $row, escape: '');
-        }
-        fclose($fp);
+        file_put_contents($path, Yaml::dump($data, 4));
     }
 
     private function removeDirectory(string $dir): void
@@ -133,7 +120,7 @@ class DatabaseLoaderTest extends TestCase
         $this->assertSame('Widget A', $records[0]['name'], 'First record should be Widget A');
     }
 
-    public function test_eloquent_loader_returns_columns_from_defines_csv(): void
+    public function test_eloquent_loader_returns_columns_from_table_yaml(): void
     {
         // Given
         $loader = new EloquentLoader(
@@ -145,15 +132,18 @@ class DatabaseLoaderTest extends TestCase
         $this->assertSame(
             ['id' => 'int', 'name' => 'string', 'country' => 'string', 'price' => 'int'],
             $loader->columns(),
-            'columns() should return definitions read from defines.csv',
+            'columns() should return definitions read from table.yaml',
         );
     }
 
-    public function test_eloquent_loader_returns_indexes_from_indexes_csv(): void
+    public function test_eloquent_loader_returns_indexes_from_table_yaml(): void
     {
         // Given
-        $this->writeIndexesCsv($this->tmpDir.'/products', [
-            ['country', 'false'],
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'name' => 'string', 'country' => 'string', 'price' => 'int'],
+            'indexes' => [
+                ['columns' => ['country'], 'unique' => false],
+            ],
         ]);
         $loader = new EloquentLoader(
             query: ProductModel::query(),
@@ -164,20 +154,48 @@ class DatabaseLoaderTest extends TestCase
         $this->assertSame(
             [['columns' => ['country'], 'unique' => false]],
             $loader->indexes(),
-            'indexes() should return definitions read from indexes.csv',
+            'indexes() should return definitions read from table.yaml',
         );
     }
 
-    public function test_eloquent_loader_returns_empty_indexes_when_no_csv(): void
+    public function test_eloquent_loader_returns_empty_indexes_when_no_indexes_section(): void
     {
-        // Given — no indexes.csv in directory
+        // Given — table.yaml has no indexes section
         $loader = new EloquentLoader(
             query: ProductModel::query(),
             tableDirectory: $this->tmpDir.'/products',
         );
 
         // When / Then
-        $this->assertSame([], $loader->indexes(), 'indexes() should return empty array when indexes.csv is absent');
+        $this->assertSame([], $loader->indexes(), 'indexes() should return empty array when indexes section is absent');
+    }
+
+    public function test_eloquent_loader_returns_primary_key_from_table_yaml(): void
+    {
+        // Given — table.yaml with explicit primary_key
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'primary_key' => 'code',
+            'columns' => ['code' => 'string', 'name' => 'string'],
+        ]);
+        $loader = new EloquentLoader(
+            query: ProductModel::query(),
+            tableDirectory: $this->tmpDir.'/products',
+        );
+
+        // When / Then
+        $this->assertSame('code', $loader->primaryKey(), 'primaryKey() should return the value from table.yaml');
+    }
+
+    public function test_eloquent_loader_returns_default_primary_key_when_not_specified(): void
+    {
+        // Given — table.yaml without primary_key field
+        $loader = new EloquentLoader(
+            query: ProductModel::query(),
+            tableDirectory: $this->tmpDir.'/products',
+        );
+
+        // When / Then
+        $this->assertSame('id', $loader->primaryKey(), 'primaryKey() should default to "id" when not specified');
     }
 
     public function test_eloquent_loader_returns_version_from_resolver(): void
@@ -228,7 +246,7 @@ class DatabaseLoaderTest extends TestCase
         $this->assertSame('Widget A', $records[0]['name'], 'First record should be Widget A');
     }
 
-    public function test_query_builder_loader_returns_columns_from_defines_csv(): void
+    public function test_query_builder_loader_returns_columns_from_table_yaml(): void
     {
         // Given
         assert($this->app !== null);
@@ -241,15 +259,18 @@ class DatabaseLoaderTest extends TestCase
         $this->assertSame(
             ['id' => 'int', 'name' => 'string', 'country' => 'string', 'price' => 'int'],
             $loader->columns(),
-            'columns() should return definitions read from defines.csv',
+            'columns() should return definitions read from table.yaml',
         );
     }
 
-    public function test_query_builder_loader_returns_indexes_from_indexes_csv(): void
+    public function test_query_builder_loader_returns_indexes_from_table_yaml(): void
     {
         // Given
-        $this->writeIndexesCsv($this->tmpDir.'/products', [
-            ['price', 'false'],
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'name' => 'string', 'country' => 'string', 'price' => 'int'],
+            'indexes' => [
+                ['columns' => ['price'], 'unique' => false],
+            ],
         ]);
         assert($this->app !== null);
         $loader = new QueryBuilderLoader(
@@ -261,8 +282,38 @@ class DatabaseLoaderTest extends TestCase
         $this->assertSame(
             [['columns' => ['price'], 'unique' => false]],
             $loader->indexes(),
-            'indexes() should return definitions read from indexes.csv',
+            'indexes() should return definitions read from table.yaml',
         );
+    }
+
+    public function test_query_builder_loader_returns_primary_key_from_table_yaml(): void
+    {
+        // Given — table.yaml with explicit primary_key
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'primary_key' => 'sku',
+            'columns' => ['sku' => 'string', 'name' => 'string'],
+        ]);
+        assert($this->app !== null);
+        $loader = new QueryBuilderLoader(
+            query: $this->app['db']->table('products'),
+            tableDirectory: $this->tmpDir.'/products',
+        );
+
+        // When / Then
+        $this->assertSame('sku', $loader->primaryKey(), 'primaryKey() should return the value from table.yaml');
+    }
+
+    public function test_query_builder_loader_returns_default_primary_key_when_not_specified(): void
+    {
+        // Given — table.yaml without primary_key field
+        assert($this->app !== null);
+        $loader = new QueryBuilderLoader(
+            query: $this->app['db']->table('products'),
+            tableDirectory: $this->tmpDir.'/products',
+        );
+
+        // When / Then
+        $this->assertSame('id', $loader->primaryKey(), 'primaryKey() should default to "id" when not specified');
     }
 
     public function test_query_builder_loader_returns_version_from_resolver(): void

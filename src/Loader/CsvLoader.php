@@ -10,8 +10,7 @@ use Kura\Contracts\VersionResolverInterface;
  * Directory layout:
  *   {tableDirectory}/
  *     data.csv      — all rows with a 'version' column
- *     defines.csv   — column,type,description
- *     indexes.csv   — columns,unique  (optional)
+ *     table.yaml    — column types, index definitions, and primary key
  *
  * Loading rule:
  *   version IS NULL (empty)  → always loaded (shared across all versions)
@@ -101,6 +100,11 @@ final class CsvLoader implements LoaderInterface
     public function indexes(): array
     {
         return $this->definitions->indexes();
+    }
+
+    public function primaryKey(): string
+    {
+        return $this->definitions->primaryKey();
     }
 
     public function version(): string

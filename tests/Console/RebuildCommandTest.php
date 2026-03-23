@@ -187,6 +187,11 @@ class RebuildCommandTest extends TestCase
                 return [];
             }
 
+            public function primaryKey(): string
+            {
+                return 'id';
+            }
+
             public function version(): string
             {
                 return 'v1';

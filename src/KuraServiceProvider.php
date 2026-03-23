@@ -111,8 +111,8 @@ class KuraServiceProvider extends ServiceProvider
      * Scan base_path for table subdirectories and register each as a CsvLoader.
      *
      * Only directories that contain data.csv are registered.
-     * versions.csv is shared at base_path/versions.csv.
-     * Per-table primary_key can be overridden via config('kura.tables.{table}.primary_key').
+     * Column types, index definitions, and primary key are read from table.yaml.
+     * The primary key from table.yaml can be overridden via config('kura.tables.{table}.primary_key').
      */
     private function autoDiscoverCsvTables(): void
     {
@@ -152,7 +152,8 @@ class KuraServiceProvider extends ServiceProvider
                 continue;
             }
 
-            $primaryKey = $tableOverrides[$entry]['primary_key'] ?? 'id';
+            // Use config override if present; otherwise let the Loader derive it from table.yaml
+            $primaryKey = $tableOverrides[$entry]['primary_key'] ?? null;
 
             $manager->register(
                 $entry,

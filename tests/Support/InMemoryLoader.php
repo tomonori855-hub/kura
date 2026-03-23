@@ -19,6 +19,7 @@ final class InMemoryLoader implements LoaderInterface
         private readonly array $columns = [],
         private readonly array $indexes = [],
         private readonly string $version = 'v1',
+        private readonly string $primaryKeyColumn = 'id',
     ) {}
 
     public function load(): \Generator
@@ -34,6 +35,11 @@ final class InMemoryLoader implements LoaderInterface
     public function indexes(): array
     {
         return $this->indexes;
+    }
+
+    public function primaryKey(): string
+    {
+        return $this->primaryKeyColumn;
     }
 
     public function version(): string

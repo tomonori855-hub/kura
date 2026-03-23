@@ -14,7 +14,7 @@ use Kura\Store\StoreInterface;
  */
 class KuraManager
 {
-    /** @var array<string, array{loader: LoaderInterface|\Closure(): LoaderInterface, primaryKey: string}> */
+    /** @var array<string, array{loader: LoaderInterface|\Closure(): LoaderInterface, primaryKey: string|null}> */
     private array $tables = [];
 
     /** @var array<string, CacheRepository> */
@@ -44,9 +44,13 @@ class KuraManager
      * which avoids unnecessary DB connections for tables that are never queried
      * in a given request.
      *
+     * When $primaryKey is null, the value is derived from $loader->primaryKey()
+     * at the time the repository is first resolved. For Closure loaders the
+     * closure is invoked at that point and the result is cached.
+     *
      * @param  LoaderInterface|\Closure(): LoaderInterface  $loader
      */
-    public function register(string $table, LoaderInterface|\Closure $loader, string $primaryKey = 'id'): void
+    public function register(string $table, LoaderInterface|\Closure $loader, ?string $primaryKey = null): void
     {
         $this->tables[$table] = [
             'loader' => $loader,
@@ -79,11 +83,14 @@ class KuraManager
                 throw new \InvalidArgumentException("Table '{$table}' is not registered with Kura.");
             }
 
+            $loader = $this->resolveLoader($table);
+            $primaryKey = $this->tables[$table]['primaryKey'] ?? $loader->primaryKey();
+
             $this->repositories[$table] = new CacheRepository(
                 table: $table,
-                primaryKey: $this->tables[$table]['primaryKey'],
+                primaryKey: $primaryKey,
                 store: $this->store,
-                loader: $this->resolveLoader($table),
+                loader: $loader,
                 versionOverride: $this->versionOverride,
             );
         }

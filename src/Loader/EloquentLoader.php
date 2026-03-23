@@ -15,9 +15,8 @@ use Kura\Contracts\VersionResolverInterface;
  *       resolver: app(VersionResolverInterface::class),
  *   )
  *
- * Column types and index definitions are read from:
- *   {tableDirectory}/defines.csv   — column,type,description
- *   {tableDirectory}/indexes.csv   — columns,unique
+ * Column types, index definitions, and primary key are read from:
+ *   {tableDirectory}/table.yaml
  *
  * Records are converted to arrays via toArray().
  * The query is executed via cursor() for low memory usage.
@@ -65,6 +64,11 @@ final class EloquentLoader implements LoaderInterface
     public function indexes(): array
     {
         return $this->definitions->indexes();
+    }
+
+    public function primaryKey(): string
+    {
+        return $this->definitions->primaryKey();
     }
 
     public function version(): string

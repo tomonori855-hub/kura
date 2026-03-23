@@ -38,6 +38,11 @@ interface LoaderInterface
     public function indexes(): array;
 
     /**
+     * Primary key column name.
+     */
+    public function primaryKey(): string;
+
+    /**
      * Cache key version identifier.
      */
     public function version(): string|int|\Stringable;

@@ -6,6 +6,7 @@ use Kura\Contracts\VersionResolverInterface;
 use Kura\Loader\CsvLoader;
 use Kura\Loader\StaticVersionResolver;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Yaml\Yaml;
 
 // Note: writeVersionsCsv() is kept as a helper but no longer required for CsvLoader;
 // CsvLoader uses VersionResolverInterface directly (StaticVersionResolver in tests).
@@ -16,7 +17,7 @@ use PHPUnit\Framework\TestCase;
  * Directory layout:
  *   {tableDir}/
  *     data.csv      — rows with a 'version' column
- *     defines.csv   — column,type,description
+ *     table.yaml    — column types, index definitions, and primary key
  *
  * Loading rule:
  *   version IS NULL (empty)  → always loaded
@@ -77,6 +78,14 @@ class CsvLoaderTest extends TestCase
         fclose($fp);
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function writeYaml(string $path, array $data): void
+    {
+        file_put_contents($path, Yaml::dump($data, 4));
+    }
+
     private function makeResolver(?string $version): VersionResolverInterface
     {
         if ($version === null) {
@@ -99,10 +108,9 @@ class CsvLoaderTest extends TestCase
     public function test_loads_rows_matching_active_version(): void
     {
         // Arrange
-        $this->writeCsv($this->tmpDir.'/products/defines.csv',
-            ['column', 'type', 'description'],
-            [['id', 'int', 'PK'], ['name', 'string', 'Name'], ['version', 'string', 'Ver']],
-        );
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'name' => 'string', 'version' => 'string'],
+        ]);
         $this->writeCsv($this->tmpDir.'/products/data.csv',
             ['id', 'name', 'version'],
             [
@@ -129,10 +137,9 @@ class CsvLoaderTest extends TestCase
     public function test_null_version_rows_are_always_loaded(): void
     {
         // Arrange
-        $this->writeCsv($this->tmpDir.'/products/defines.csv',
-            ['column', 'type', 'description'],
-            [['id', 'int', 'PK'], ['name', 'string', 'Name'], ['version', 'string', 'Ver']],
-        );
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'name' => 'string', 'version' => 'string'],
+        ]);
         $this->writeCsv($this->tmpDir.'/products/data.csv',
             ['id', 'name', 'version'],
             [
@@ -160,10 +167,9 @@ class CsvLoaderTest extends TestCase
     public function test_active_version_is_the_latest_activated_one(): void
     {
         // Arrange — v1.1.0 is the active version
-        $this->writeCsv($this->tmpDir.'/products/defines.csv',
-            ['column', 'type', 'description'],
-            [['id', 'int', 'PK'], ['name', 'string', 'Name'], ['version', 'string', 'Ver']],
-        );
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'name' => 'string', 'version' => 'string'],
+        ]);
         $this->writeCsv($this->tmpDir.'/products/data.csv',
             ['id', 'name', 'version'],
             [
@@ -197,16 +203,15 @@ class CsvLoaderTest extends TestCase
         $this->writeVersionsCsv([
             ['id' => 1, 'version' => 'v1.0.0', 'activated_at' => '2024-01-01 00:00:00'],
         ]);
-        $this->writeCsv($this->tmpDir.'/products/defines.csv',
-            ['column', 'type', 'description'],
-            [
-                ['id',      'int',    'PK'],
-                ['price',   'float',  'Price'],
-                ['active',  'bool',   'Active'],
-                ['name',    'string', 'Name'],
-                ['version', 'string', 'Ver'],
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => [
+                'id' => 'int',
+                'price' => 'float',
+                'active' => 'bool',
+                'name' => 'string',
+                'version' => 'string',
             ],
-        );
+        ]);
         $this->writeCsv($this->tmpDir.'/products/data.csv',
             ['id', 'price', 'active', 'name', 'version'],
             [['1', '9.99', '1', 'Widget', 'v1.0.0']],
@@ -233,10 +238,9 @@ class CsvLoaderTest extends TestCase
         $this->writeVersionsCsv([
             ['id' => 1, 'version' => 'v1.0.0', 'activated_at' => '2024-01-01 00:00:00'],
         ]);
-        $this->writeCsv($this->tmpDir.'/products/defines.csv',
-            ['column', 'type', 'description'],
-            [['id', 'int', 'PK'], ['note', 'string', 'Note'], ['version', 'string', 'Ver']],
-        );
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'note' => 'string', 'version' => 'string'],
+        ]);
         $this->writeCsv($this->tmpDir.'/products/data.csv',
             ['id', 'note', 'version'],
             [[1, '', 'v1.0.0']],
@@ -264,10 +268,9 @@ class CsvLoaderTest extends TestCase
         $this->writeVersionsCsv([
             ['id' => 1, 'version' => 'v1.0.0', 'activated_at' => '2025-01-01 00:00:00'],
         ]);
-        $this->writeCsv($this->tmpDir.'/products/defines.csv',
-            ['column', 'type', 'description'],
-            [['id', 'int', 'PK'], ['version', 'string', 'Ver']],
-        );
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'version' => 'string'],
+        ]);
 
         $loader = new CsvLoader(
             tableDirectory: $this->tmpDir.'/products',
@@ -284,10 +287,9 @@ class CsvLoaderTest extends TestCase
         $this->writeVersionsCsv([
             ['id' => 1, 'version' => 'v1.0.0', 'activated_at' => '2024-01-01 00:00:00'],
         ]);
-        $this->writeCsv($this->tmpDir.'/products/defines.csv',
-            ['column', 'type', 'description'],
-            [['id', 'int', 'PK']],
-        );
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int'],
+        ]);
         // data.csv intentionally not created
 
         $loader = new CsvLoader(
@@ -305,10 +307,9 @@ class CsvLoaderTest extends TestCase
         $this->writeVersionsCsv([
             ['id' => 1, 'version' => 'v1.0.0', 'activated_at' => '2024-01-01 00:00:00'],
         ]);
-        $this->writeCsv($this->tmpDir.'/products/defines.csv',
-            ['column', 'type', 'description'],
-            [['id', 'int', 'PK']],
-        );
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int'],
+        ]);
         $this->writeCsv($this->tmpDir.'/products/data.csv',
             ['id', 'name'],   // no version column
             [[1, 'Widget']],
@@ -327,16 +328,19 @@ class CsvLoaderTest extends TestCase
     // indexes()
     // =========================================================================
 
-    public function test_indexes_loads_from_indexes_csv(): void
+    public function test_indexes_loads_from_table_yaml(): void
     {
         // Arrange
         $this->writeVersionsCsv([
             ['id' => 1, 'version' => 'v1.0.0', 'activated_at' => '2024-01-01 00:00:00'],
         ]);
-        $this->writeCsv($this->tmpDir.'/products/indexes.csv',
-            ['columns', 'unique'],
-            [['name', 'false'], ['code', 'false']],
-        );
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'name' => 'string', 'code' => 'string'],
+            'indexes' => [
+                ['columns' => ['name'], 'unique' => false],
+                ['columns' => ['code'], 'unique' => false],
+            ],
+        ]);
 
         $loader = new CsvLoader(
             tableDirectory: $this->tmpDir.'/products',
@@ -346,23 +350,25 @@ class CsvLoaderTest extends TestCase
         // Act
         $indexes = $loader->indexes();
 
-        // Assert — both indexes loaded from CSV
-        $this->assertCount(2, $indexes, 'indexes() should return 2 definitions from indexes.csv');
+        // Assert — both indexes loaded from table.yaml
+        $this->assertCount(2, $indexes, 'indexes() should return 2 definitions from table.yaml');
         $this->assertSame(['name'], $indexes[0]['columns'], 'First index should be on name column');
         $this->assertFalse($indexes[0]['unique'], 'name index should not be unique');
         $this->assertSame(['code'], $indexes[1]['columns'], 'Second index should be on code column');
     }
 
-    public function test_indexes_csv_with_composite_columns(): void
+    public function test_indexes_yaml_with_composite_columns(): void
     {
         // Arrange
         $this->writeVersionsCsv([
             ['id' => 1, 'version' => 'v1.0.0', 'activated_at' => '2024-01-01 00:00:00'],
         ]);
-        $this->writeCsv($this->tmpDir.'/products/indexes.csv',
-            ['columns', 'unique'],
-            [['country|type', 'false']],
-        );
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'country' => 'string', 'type' => 'string'],
+            'indexes' => [
+                ['columns' => ['country', 'type'], 'unique' => false],
+            ],
+        ]);
 
         $loader = new CsvLoader(
             tableDirectory: $this->tmpDir.'/products',
@@ -372,26 +378,28 @@ class CsvLoaderTest extends TestCase
         // Act
         $indexes = $loader->indexes();
 
-        // Assert — pipe-separated columns become a composite index
+        // Assert — composite index columns are read as list
         $this->assertCount(1, $indexes, 'Should have one composite index');
         $this->assertSame(
             ['country', 'type'],
             $indexes[0]['columns'],
-            'Pipe-separated columns should be split into a list',
+            'Composite index columns should be a list',
         );
         $this->assertFalse($indexes[0]['unique'], 'Composite index should not be unique');
     }
 
-    public function test_indexes_csv_with_unique_index(): void
+    public function test_indexes_yaml_with_unique_index(): void
     {
         // Arrange
         $this->writeVersionsCsv([
             ['id' => 1, 'version' => 'v1.0.0', 'activated_at' => '2024-01-01 00:00:00'],
         ]);
-        $this->writeCsv($this->tmpDir.'/products/indexes.csv',
-            ['columns', 'unique'],
-            [['email', 'true']],
-        );
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'email' => 'string'],
+            'indexes' => [
+                ['columns' => ['email'], 'unique' => true],
+            ],
+        ]);
 
         $loader = new CsvLoader(
             tableDirectory: $this->tmpDir.'/products',
@@ -403,16 +411,16 @@ class CsvLoaderTest extends TestCase
 
         // Assert — unique=true is correctly parsed
         $this->assertCount(1, $indexes, 'Should have one unique index');
-        $this->assertTrue($indexes[0]['unique'], 'unique=true in CSV should result in unique:true');
+        $this->assertTrue($indexes[0]['unique'], 'unique: true in YAML should result in unique:true');
     }
 
-    public function test_indexes_returns_empty_when_no_csv(): void
+    public function test_indexes_returns_empty_when_no_yaml(): void
     {
-        // Arrange — no indexes.csv, no constructor arg
+        // Arrange — no table.yaml in directory
         $this->writeVersionsCsv([
             ['id' => 1, 'version' => 'v1.0.0', 'activated_at' => '2024-01-01 00:00:00'],
         ]);
-        // indexes.csv intentionally not created
+        // table.yaml intentionally not created
 
         $loader = new CsvLoader(
             tableDirectory: $this->tmpDir.'/products',
@@ -423,19 +431,21 @@ class CsvLoaderTest extends TestCase
         $indexes = $loader->indexes();
 
         // Assert
-        $this->assertSame([], $indexes, 'indexes() should return empty array when neither source exists');
+        $this->assertSame([], $indexes, 'indexes() should return empty array when table.yaml is absent');
     }
 
-    public function test_indexes_csv_is_read_only_once_per_instance(): void
+    public function test_indexes_yaml_is_read_only_once_per_instance(): void
     {
         // Arrange
         $this->writeVersionsCsv([
             ['id' => 1, 'version' => 'v1.0.0', 'activated_at' => '2024-01-01 00:00:00'],
         ]);
-        $this->writeCsv($this->tmpDir.'/products/indexes.csv',
-            ['columns', 'unique'],
-            [['name', 'false']],
-        );
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'name' => 'string'],
+            'indexes' => [
+                ['columns' => ['name'], 'unique' => false],
+            ],
+        ]);
 
         $loader = new CsvLoader(
             tableDirectory: $this->tmpDir.'/products',
@@ -444,7 +454,12 @@ class CsvLoaderTest extends TestCase
 
         // Act — call twice, then overwrite the file to verify result is cached
         $first = $loader->indexes();
-        file_put_contents($this->tmpDir.'/products/indexes.csv', "columns,unique\nmodified,true\n");
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'modified' => 'string'],
+            'indexes' => [
+                ['columns' => ['modified'], 'unique' => true],
+            ],
+        ]);
         $second = $loader->indexes();
 
         // Assert — second call returns cached result, not re-read from disk
@@ -453,8 +468,61 @@ class CsvLoaderTest extends TestCase
             $second,
             'indexes() should return cached result without re-reading the file',
         );
-        $this->assertSame(['name'], $first[0]['columns'], 'Should reflect original CSV, not modified version');
+        $this->assertSame(['name'], $first[0]['columns'], 'Should reflect original YAML, not modified version');
     }
+
+    // =========================================================================
+    // primaryKey()
+    // =========================================================================
+
+    public function test_primary_key_defaults_to_id_when_not_specified(): void
+    {
+        // Arrange — table.yaml without primary_key field
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'name' => 'string'],
+        ]);
+
+        $loader = new CsvLoader(
+            tableDirectory: $this->tmpDir.'/products',
+            resolver: $this->makeResolver('v1.0.0'),
+        );
+
+        // Act / Assert
+        $this->assertSame('id', $loader->primaryKey(), 'primaryKey() should default to "id" when not specified in table.yaml');
+    }
+
+    public function test_primary_key_reads_from_table_yaml(): void
+    {
+        // Arrange — table.yaml with explicit primary_key
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'primary_key' => 'code',
+            'columns' => ['code' => 'string', 'name' => 'string'],
+        ]);
+
+        $loader = new CsvLoader(
+            tableDirectory: $this->tmpDir.'/products',
+            resolver: $this->makeResolver('v1.0.0'),
+        );
+
+        // Act / Assert
+        $this->assertSame('code', $loader->primaryKey(), 'primaryKey() should return the value from primary_key in table.yaml');
+    }
+
+    public function test_primary_key_defaults_to_id_when_no_yaml(): void
+    {
+        // Arrange — no table.yaml
+        $loader = new CsvLoader(
+            tableDirectory: $this->tmpDir.'/products',
+            resolver: $this->makeResolver('v1.0.0'),
+        );
+
+        // Act / Assert
+        $this->assertSame('id', $loader->primaryKey(), 'primaryKey() should default to "id" when table.yaml is absent');
+    }
+
+    // =========================================================================
+    // General
+    // =========================================================================
 
     public function test_load_is_a_generator(): void
     {
@@ -462,10 +530,9 @@ class CsvLoaderTest extends TestCase
         $this->writeVersionsCsv([
             ['id' => 1, 'version' => 'v1.0.0', 'activated_at' => '2024-01-01 00:00:00'],
         ]);
-        $this->writeCsv($this->tmpDir.'/products/defines.csv',
-            ['column', 'type', 'description'],
-            [['id', 'int', 'PK'], ['version', 'string', 'Ver']],
-        );
+        $this->writeYaml($this->tmpDir.'/products/table.yaml', [
+            'columns' => ['id' => 'int', 'version' => 'string'],
+        ]);
         $this->writeCsv($this->tmpDir.'/products/data.csv',
             ['id', 'version'],
             [[1, 'v1.0.0']],
