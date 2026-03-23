@@ -7,7 +7,7 @@
 
 [![Tests](https://github.com/niktomo/kura/actions/workflows/tests.yml/badge.svg)](https://github.com/niktomo/kura/actions/workflows/tests.yml)
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/niktomo/kura.svg)](https://packagist.org/packages/niktomo/kura)
-[![PHP Version](https://img.shields.io/badge/php-%5E8.3-blue)](https://www.php.net/)
+[![PHP Version](https://img.shields.io/badge/php-%5E8.2-blue)](https://www.php.net/)
 [![License](https://img.shields.io/github/license/niktomo/kura)](LICENSE)
 
 **Kura** (蔵 — *storehouse*) is a Laravel package that caches reference data in APCu and queries it with a **Laravel QueryBuilder-compatible API**.
@@ -28,8 +28,8 @@ Kura provides a QueryBuilder-compatible API backed by APCu (in-process memory), 
 
 ## Requirements
 
-- PHP 8.3 / 8.4 (8.5+ expected to work)
-- Laravel ^12.0 / ^13.0
+- PHP 8.2 / 8.3 / 8.4 (8.5+ expected to work)
+- Laravel ^11.0 / ^12.0 / ^13.0
 - APCu extension (`pecl install apcu`)
 
 ## Installation
