@@ -123,39 +123,35 @@ Indexes are declared via `LoaderInterface::indexes()` — it's the Loader's resp
 
 ### CSV and Database Loaders
 
-All loaders (CsvLoader, EloquentLoader, QueryBuilderLoader) read column and index definitions from CSV files in the table directory:
+All loaders (CsvLoader, EloquentLoader, QueryBuilderLoader) read column and index definitions from `table.yaml` in the table directory:
 
 ```
 data/stations/
-├── defines.csv    # column type definitions  (required)
-├── indexes.csv    # index declarations       (optional — omit if no indexes needed)
-└── data.csv       # CSV data                 (CsvLoader only)
+├── table.yaml     # column types, index declarations, primary key
+└── data.csv       # CSV data  (CsvLoader only)
 ```
 
-**defines.csv format:**
-```csv
-column,type,description
-id,int,Primary key
-prefecture,string,Prefecture name
-line_id,int,Line ID
-code,string,Station code
-price,int,Price
+**table.yaml format:**
+```yaml
+primary_key: id          # optional, defaults to 'id'
+columns:
+  id: int
+  prefecture: string
+  line_id: int
+  code: string
+  price: int
+indexes:                 # optional
+  - columns: [prefecture]
+    unique: false
+  - columns: [line_id]
+    unique: false
+  - columns: [prefecture, line_id]  # composite index
+    unique: false
+  - columns: [code]
+    unique: true
 ```
 
-- `column`: column name
-- `type`: `int`, `string`, `float`, or `bool`
-- `description`: free text, ignored by Kura
-
-**indexes.csv format:**
-```csv
-columns,unique
-prefecture,false
-line_id,false
-prefecture|line_id,false
-code,true
-```
-
-- `columns`: single column name, or `col1|col2` for composite
+- `columns`: list of column names; multiple entries declare a composite index
 - `unique`: `true` or `false`
 
 **CsvLoader:**
@@ -224,12 +220,15 @@ $loader = new QueryBuilderLoader(
 
 A stations table with 9,000+ records:
 
-**data/stations/indexes.csv:**
-```csv
-columns,unique
-prefecture,false
-line_id,false
-prefecture|line_id,false
+**data/stations/table.yaml (indexes section):**
+```yaml
+indexes:
+  - columns: [prefecture]
+    unique: false
+  - columns: [line_id]
+    unique: false
+  - columns: [prefecture, line_id]
+    unique: false
 ```
 
 ```php

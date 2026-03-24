@@ -48,10 +48,10 @@ id,version,activated_at
 data/
 ├── versions.csv
 ├── stations/
-│   ├── defines.csv
+│   ├── table.yaml
 │   └── data.csv          # version カラム必須
 └── lines/
-    ├── defines.csv
+    ├── table.yaml
     └── data.csv
 ```
 

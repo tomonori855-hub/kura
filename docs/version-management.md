@@ -48,10 +48,10 @@ Each table has its own directory with a single `data.csv` file that includes a `
 data/
 ├── versions.csv
 ├── stations/
-│   ├── defines.csv
+│   ├── table.yaml
 │   └── data.csv          # version column required
 └── lines/
-    ├── defines.csv
+    ├── table.yaml
     └── data.csv
 ```
 

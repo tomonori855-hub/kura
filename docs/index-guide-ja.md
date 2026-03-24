@@ -123,39 +123,35 @@ where('prefecture', 'Tokyo')->where('line_id', 1)
 
 ### CSV・データベース共通
 
-すべての Loader（CsvLoader、EloquentLoader、QueryBuilderLoader）は、テーブルディレクトリの CSV ファイルからカラム定義とインデックス定義を読み込みます:
+すべての Loader（CsvLoader、EloquentLoader、QueryBuilderLoader）は、テーブルディレクトリの `table.yaml` からカラム定義とインデックス定義を読み込みます:
 
 ```
 data/stations/
-├── defines.csv    # カラム型定義        （必須）
-├── indexes.csv    # インデックス宣言    （省略可 — インデックス不要なら不要）
-└── data.csv       # CSV データ         （CsvLoader のみ）
+├── table.yaml     # カラム型、インデックス宣言、主キー
+└── data.csv       # CSV データ  （CsvLoader のみ）
 ```
 
-**defines.csv フォーマット:**
-```csv
-column,type,description
-id,int,主キー
-prefecture,string,都道府県名
-line_id,int,路線ID
-code,string,駅コード
-price,int,価格
+**table.yaml フォーマット:**
+```yaml
+primary_key: id          # 省略可、デフォルト 'id'
+columns:
+  id: int
+  prefecture: string
+  line_id: int
+  code: string
+  price: int
+indexes:                 # 省略可
+  - columns: [prefecture]
+    unique: false
+  - columns: [line_id]
+    unique: false
+  - columns: [prefecture, line_id]  # composite インデックス
+    unique: false
+  - columns: [code]
+    unique: true
 ```
 
-- `column`: カラム名
-- `type`: `int`、`string`、`float`、`bool` のいずれか
-- `description`: 自由記述。Kura では使用しない
-
-**indexes.csv フォーマット:**
-```csv
-columns,unique
-prefecture,false
-line_id,false
-prefecture|line_id,false
-code,true
-```
-
-- `columns`: 単一カラム名、または `col1|col2`（composite 用）
+- `columns`: カラム名のリスト。複数指定で composite インデックスになる
 - `unique`: `true` または `false`
 
 **CsvLoader:**
@@ -224,12 +220,15 @@ $loader = new QueryBuilderLoader(
 
 9,000件以上の駅テーブル:
 
-**data/stations/indexes.csv:**
-```csv
-columns,unique
-prefecture,false
-line_id,false
-prefecture|line_id,false
+**data/stations/table.yaml (indexes セクション):**
+```yaml
+indexes:
+  - columns: [prefecture]
+    unique: false
+  - columns: [line_id]
+    unique: false
+  - columns: [prefecture, line_id]
+    unique: false
 ```
 
 ```php

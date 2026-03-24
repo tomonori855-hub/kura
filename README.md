@@ -78,8 +78,7 @@ Organize CSV files by table, with a shared `versions.csv`:
 data/
 ├── versions.csv           # shared version registry
 └── stations/
-    ├── defines.csv        # column definitions
-    ├── indexes.csv        # index definitions (optional)
+    ├── table.yaml         # column types, indexes, primary key
     └── data.csv           # data (version column required)
 ```
 
@@ -92,34 +91,33 @@ id,version,activated_at
 
 The version with `activated_at <= now` and the latest timestamp is used.
 
-**stations/defines.csv** — column names and types:
-```csv
-column,type,description
-id,int,Station ID
-name,string,Station name
-prefecture,string,Prefecture
-city,string,City
-lat,float,Latitude
-lng,float,Longitude
-line_id,int,Railway line ID
-version,string,Data version (required)
+**stations/table.yaml** — column types, index declarations, and primary key:
+```yaml
+primary_key: id          # optional, defaults to 'id'
+columns:
+  id: int
+  name: string
+  prefecture: string
+  city: string
+  lat: float
+  lng: float
+  line_id: int
+  version: string        # required for version-based filtering
+indexes:                 # optional
+  - columns: [prefecture]
+    unique: false
+  - columns: [line_id]
+    unique: false
+  - columns: [prefecture, city]  # composite index — O(1) multi-column equality
+    unique: false
 ```
 
 Supported types: `int`, `float`, `bool`, `string`
 
-**stations/indexes.csv** — optional; defines which columns to index for fast lookups:
-```csv
-columns,unique
-prefecture,false
-line_id,false
-prefecture|city,false
-```
+- Composite indexes (`[col1, col2]`) enable O(1) multi-column equality lookups
+- If no indexes are needed, omit the `indexes` key entirely
 
-- `columns`: column name, or `|`-separated list for a composite index
-- `unique`: `true` / `false`
-- Composite indexes (`col1|col2`) enable O(1) multi-column equality lookups
-
-> **Tip:** If no indexes are needed, simply omit `indexes.csv`. All loaders will return an empty index list.
+> **Tip:** `primary_key` defaults to `id` — only specify it if your table uses a different column name.
 
 **stations/data.csv** — the actual data, with a `version` column:
 ```csv
@@ -135,12 +133,11 @@ The CsvLoader loads rows where `version IS NULL` (always loaded, shared across a
 
 #### Option B: Database (Eloquent)
 
-No data CSV needed — load directly from your database. Column definitions and index declarations are read from the same `defines.csv` / `indexes.csv` files as the CSV loader:
+No data CSV needed — load directly from your database. Column definitions and index declarations are read from `table.yaml` in the table directory:
 
 ```
 data/stations/
-├── defines.csv    # column type definitions (required)
-└── indexes.csv    # index declarations (optional)
+└── table.yaml    # column types, index declarations, primary key
 ```
 
 ```php
@@ -203,13 +200,11 @@ The easiest approach when using CSV files — Kura scans a directory and registe
 storage/reference/
 ├── versions.csv        # shared version registry
 ├── stations/
-│   ├── data.csv
-│   ├── defines.csv
-│   └── indexes.csv
+│   ├── table.yaml
+│   └── data.csv
 └── lines/
-    ├── data.csv
-    ├── defines.csv
-    └── indexes.csv
+    ├── table.yaml
+    └── data.csv
 ```
 
 That's it — `stations` and `lines` are registered automatically. To override the primary key for a specific table:
@@ -511,16 +506,16 @@ Indexes declared: `country`, `price`, `country|category` (composite).
 | Scenario | 1K records | 10K records | 100K records |
 |---|---|---|---|
 | `find($id)` — single record lookup | **0.9 µs** | **1.0 µs** | **1.0 µs** |
-| `where('country','JP')` — indexed `=` (20% hit) | **132 µs** | **1.26 ms** | **14.67 ms** |
-| `where('country','JP')->where('category','electronics')` — composite index (2% hit) | **101 µs** | **933 µs** | **10.60 ms** |
-| `whereBetween('price', [50,100])` — range index (25% hit) | **177 µs** | **1.58 ms** | **17.83 ms** |
-| `where('country','JP')->orderBy('price')` — index walk | **180 µs** | **1.58 ms** | **20.53 ms** |
-| `where('active', true)` — non-indexed full scan (67% hit) | 475 µs | 4.62 ms | 52.21 ms |
-| `get()` — all records | 382 µs | 3.78 ms | 39.52 ms |
-| Cache build (`rebuild()`) | 2.91 ms | 10.63 ms | 108.81 ms |
+| `where('country','JP')` — indexed `=` (20% hit) | **119 µs** | **1.08 ms** | **12.60 ms** |
+| `where('country','JP')->where('category','electronics')` — composite index (2% hit) | **99 µs** | **885 µs** | **9.68 ms** |
+| `whereBetween('price', [50,100])` — range index (25% hit) | **159 µs** | **1.35 ms** | **14.47 ms** |
+| `where('country','JP')->orderBy('price')` — index walk | **170 µs** | **1.40 ms** | **17.49 ms** |
+| `where('active', true)` — non-indexed full scan (67% hit) | 400 µs | 3.74 ms | 39.42 ms |
+| `get()` — all records | 436 µs | 3.71 ms | 38.74 ms |
+| Cache build (`rebuild()`) | 3.02 ms | 12.32 ms | 118.24 ms |
 
 Index-accelerated queries (**bold**) are 3–5× faster than full scans at the same dataset size.
-At 100K records, indexed queries respond in under 21 ms; a non-indexed full scan takes ~52 ms.
+At 100K records, indexed queries respond in under 18 ms; a non-indexed full scan takes ~39 ms.
 
 `orderBy` on an indexed column uses a pre-sorted index walk — no PHP sort needed.
 `orderBy` on a **non-indexed** column falls back to a PHP-side sort that collects all matching records into memory first (O(N)). For large tables, declare an index on any column you frequently sort by.

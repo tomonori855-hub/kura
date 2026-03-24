@@ -56,11 +56,11 @@ src/
 │   └── RebuildCacheJob.php            非同期キャッシュ再構築ジョブ
 ├── Loader/
 │   ├── LoaderInterface.php            データ取得の抽象インターフェース
-│   ├── TableDefinitionReader.php      defines.csv / indexes.csv を読み込む
-│   ├── CsvLoader.php                  CSV ベースの Loader（data.csv + defines.csv + indexes.csv）
+│   ├── TableDefinitionReader.php      table.yaml（カラム、インデックス、主キー）を読み込む
+│   ├── CsvLoader.php                  CSV ベースの Loader（data.csv + table.yaml）
 │   ├── CsvVersionResolver.php         versions.csv から全バージョン行を読み込む（VersionsLoaderInterface）
-│   ├── EloquentLoader.php             Eloquent モデルベースの Loader（defines/indexes は tableDirectory から読込）
-│   ├── QueryBuilderLoader.php         QueryBuilder ベースの Loader（defines/indexes は tableDirectory から読込）
+│   ├── EloquentLoader.php             Eloquent モデルベースの Loader（table.yaml を tableDirectory から読込）
+│   ├── QueryBuilderLoader.php         QueryBuilder ベースの Loader（table.yaml を tableDirectory から読込）
 │   └── StaticVersionResolver.php      固定バージョン文字列のリゾルバー（シンプルな構成・テスト用）
 ├── Store/
 │   ├── StoreInterface.php             APCu 操作の抽象インターフェース
@@ -234,14 +234,22 @@ CsvLoader / EloquentLoader / QueryBuilderLoader は src/Loader/ に含まれる
 CsvLoader のファイル構成:
   {tableDirectory}/
     data.csv      — version カラム付きのデータ（必須）
-    defines.csv   — カラム名 → 型のマッピング
-    indexes.csv   — インデックス定義（省略可。省略時はコンストラクタ引数を使用）
+    table.yaml    — カラム型定義、インデックス定義、主キー
 
-indexes.csv のフォーマット:
-  columns,unique
-  prefecture,false       — 単一カラムインデックス
-  email,true             — ユニークインデックス
-  country|type,false     — composite インデックス（| 区切り）
+table.yaml のフォーマット:
+  primary_key: id          # 省略可、デフォルト 'id'
+  columns:
+    id: int
+    prefecture: string     — サポート型: int, float, bool, string
+    email: string
+    country: string
+  indexes:                 # 省略可
+    - columns: [prefecture]
+      unique: false        — 単一カラムインデックス
+    - columns: [email]
+      unique: true         — ユニークインデックス
+    - columns: [country, type]
+      unique: false        — composite インデックス
 
 自動発見（config: kura.csv.auto_discover = true）:
   KuraServiceProvider が kura.csv.base_path 配下をスキャン。
@@ -337,7 +345,7 @@ RecordCursor
 data/
 ├── versions.csv                 id, version, activated_at
 └── products/
-    ├── defines.csv              column, type, description
+    ├── table.yaml               カラム型、インデックス、主キー
     └── data.csv                 version カラムありのデータ行
 ```
 
@@ -364,14 +372,18 @@ id,name,price,version
 
 **空セルは `null` として扱われます。** `data.csv` の空セル（上記の行1の `version` カラムなど）はレコード内で `null` として保存されます。これは標準的な CSV の慣例に従っており、Kura 全体で使用している MySQL の NULL セマンティクスと一致しています。
 
-### defines.csv
+### table.yaml
 
-```csv
-column,type,description
-id,int,商品ID
-name,string,商品名
-price,float,価格
-active,bool,販売中フラグ
+```yaml
+primary_key: id          # 省略可、デフォルト 'id'
+columns:
+  id: int
+  name: string
+  price: float
+  active: bool
+indexes:                 # 省略可
+  - columns: [name]
+    unique: false
 ```
 
 サポートする型: `int` / `float` / `bool` / `string`

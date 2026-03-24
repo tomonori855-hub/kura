@@ -217,7 +217,7 @@ index の返り値は ID リスト `[id, ...]`。intersection 時は `array_flip
 ### index の宣言
 
 index の定義は **Loader 側の責務**。`LoaderInterface::indexes()` でデータと一緒に提供する。
-CSV なら defines.csv や indexes.csv から読み取る。DB なら schema から取得。
+CSV・DB いずれも、テーブルディレクトリの table.yaml から読み取る。
 Kura 側は `LoaderInterface` 経由で受け取るだけ。
 
 ### composite index

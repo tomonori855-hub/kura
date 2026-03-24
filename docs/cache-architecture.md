@@ -216,7 +216,7 @@ Index return values are ID lists `[id, ...]`. For intersection, they are convert
 ### Index Declaration
 
 Index definitions are the **Loader's responsibility**. Provided alongside data via `LoaderInterface::indexes()`.
-For CSV, read from defines.csv or indexes.csv. For DB, derive from schema.
+For CSV and DB loaders, read from table.yaml in the table directory.
 Kura just receives them via `LoaderInterface`.
 
 ### Composite Index

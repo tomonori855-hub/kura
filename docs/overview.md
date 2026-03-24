@@ -56,8 +56,8 @@ src/
 │   └── RebuildCacheJob.php            Async cache rebuild job
 ├── Loader/
 │   ├── LoaderInterface.php            Abstract interface for data retrieval
-│   ├── TableDefinitionReader.php      Reads defines.csv and indexes.csv
-│   ├── CsvLoader.php                  CSV-based loader (data.csv + defines.csv + indexes.csv)
+│   ├── TableDefinitionReader.php      Reads table.yaml (columns, indexes, primary key)
+│   ├── CsvLoader.php                  CSV-based loader (data.csv + table.yaml)
 │   ├── CsvVersionResolver.php         Loads all version rows from versions.csv (VersionsLoaderInterface)
 │   ├── EloquentLoader.php             Eloquent model-based loader (reads defines/indexes from tableDirectory)
 │   ├── QueryBuilderLoader.php         Query builder-based loader (reads defines/indexes from tableDirectory)
@@ -234,14 +234,22 @@ CsvLoader / EloquentLoader / QueryBuilderLoader are included in src/Loader/
 CsvLoader file layout:
   {tableDirectory}/
     data.csv      — rows with a version column (required)
-    defines.csv   — column name → type mapping
-    indexes.csv   — index definitions (optional; falls back to constructor arg)
+    table.yaml    — column types, index definitions, primary key
 
-indexes.csv format:
-  columns,unique
-  prefecture,false       — single-column index
-  email,true             — unique index
-  country|type,false     — composite index (| separator)
+table.yaml format:
+  primary_key: id          # optional, defaults to 'id'
+  columns:
+    id: int
+    prefecture: string     — supported types: int, float, bool, string
+    email: string
+    country: string
+  indexes:                 # optional
+    - columns: [prefecture]
+      unique: false        — single-column index
+    - columns: [email]
+      unique: true         — unique index
+    - columns: [country, type]
+      unique: false        — composite index
 
 Auto-discovery (config: kura.csv.auto_discover = true):
   KuraServiceProvider scans kura.csv.base_path for subdirectories.
@@ -335,7 +343,7 @@ One table = one directory. `versions.csv` is shared across all tables (placed in
 data/
 ├── versions.csv                 id, version, activated_at
 └── products/
-    ├── defines.csv              column, type, description
+    ├── table.yaml               column types, indexes, primary key
     └── data.csv                 data rows with version column
 ```
 
@@ -362,14 +370,18 @@ id,name,price,version
 
 **Empty cells are treated as `null`.** An empty cell in `data.csv` (e.g. the `version` column of row 1 above) is stored as `null` in the record. This follows standard CSV convention and is consistent with MySQL `NULL` semantics used throughout Kura.
 
-### defines.csv
+### table.yaml
 
-```csv
-column,type,description
-id,int,Product ID
-name,string,Product name
-price,float,Price
-active,bool,Active flag
+```yaml
+primary_key: id          # optional, defaults to 'id'
+columns:
+  id: int
+  name: string
+  price: float
+  active: bool
+indexes:                 # optional
+  - columns: [name]
+    unique: false
 ```
 
 Supported types: `int` / `float` / `bool` / `string`
