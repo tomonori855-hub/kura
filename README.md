@@ -510,17 +510,17 @@ Indexes declared: `country`, `price`, `country|category` (composite).
 
 | Scenario | 1K records | 10K records | 100K records |
 |---|---|---|---|
-| `find($id)` — single record lookup | **0.9 µs** | **1.0 µs** | **0.9 µs** |
-| `where('country','JP')` — indexed `=` (20% hit) | **139 µs** | **1.3 ms** | **15 ms** |
-| `where('country','JP')->where('category','electronics')` — composite index (2% hit) | **101 µs** | **951 µs** | **11 ms** |
-| `whereBetween('price', [50,100])` — range index (25% hit) | **180 µs** | **1.7 ms** | **18 ms** |
-| `where('country','JP')->orderBy('price')` — index walk | **186 µs** | **1.6 ms** | **21 ms** |
-| `where('active', true)` — non-indexed full scan (67% hit) | 483 µs | 6.2 ms | 53 ms |
-| `get()` — all records | 387 µs | 3.7 ms | 39 ms |
-| Cache build (`rebuild()`) | 3.0 ms | 11.1 ms | 117 ms |
+| `find($id)` — single record lookup | **0.9 µs** | **1.0 µs** | **1.0 µs** |
+| `where('country','JP')` — indexed `=` (20% hit) | **132 µs** | **1.26 ms** | **14.67 ms** |
+| `where('country','JP')->where('category','electronics')` — composite index (2% hit) | **101 µs** | **933 µs** | **10.60 ms** |
+| `whereBetween('price', [50,100])` — range index (25% hit) | **177 µs** | **1.58 ms** | **17.83 ms** |
+| `where('country','JP')->orderBy('price')` — index walk | **180 µs** | **1.58 ms** | **20.53 ms** |
+| `where('active', true)` — non-indexed full scan (67% hit) | 475 µs | 4.62 ms | 52.21 ms |
+| `get()` — all records | 382 µs | 3.78 ms | 39.52 ms |
+| Cache build (`rebuild()`) | 2.91 ms | 10.63 ms | 108.81 ms |
 
 Index-accelerated queries (**bold**) are 3–5× faster than full scans at the same dataset size.
-At 100K records, indexed queries respond in under 21 ms; a non-indexed full scan takes ~53 ms.
+At 100K records, indexed queries respond in under 21 ms; a non-indexed full scan takes ~52 ms.
 `orderBy` on an indexed column uses a pre-sorted index walk — no PHP sort needed.
 
 > Run `php benchmarks/benchmark.php` in the Docker environment to reproduce.
